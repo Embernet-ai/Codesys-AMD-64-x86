@@ -1,0 +1,249 @@
+# Default values for codesys-x86 Helm chart
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# CODESYS runtime configuration
+codesys:
+  version: "3.5.19.0"
+  
+# Architecture selection - choose 'amd64' or '386'
+# Only one architecture deployment will be active
+architecture: amd64
+
+# Image configuration
+image:
+  registry: ghcr.io
+  repository: YOUR_ORG/codesys-control-x86
+  pullPolicy: Always
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "latest"
+
+# Image pull secrets for private registries
+imagePullSecrets: []
+# - name: regcred
+
+# Namespace configuration
+namespace:
+  name: codesys-x86
+  create: true
+  labels:
+    architecture: x86
+    description: "CODESYS Control for Linux - x86 Architecture"
+
+# Service Account
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: false
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  name: ""
+
+# Deployment configuration
+replicaCount: 1
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1000
+
+# Container security context
+securityContext:
+  capabilities:
+    add:
+      - SYS_NICE
+      - NET_RAW
+      - NET_ADMIN
+      - SYS_TIME
+  runAsUser: 1000
+  runAsGroup: 1000
+  allowPrivilegeEscalation: false
+  # runAsNonRoot: true
+
+# Resource limits and requests
+resources:
+  # For amd64 architecture
+  amd64:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  # For 386 architecture
+  i386:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# Node selector for architecture
+nodeSelector:
+  # Will be automatically set based on 'architecture' value
+  # kubernetes.io/arch: amd64
+
+# Tolerations
+tolerations: []
+
+# Affinity rules
+affinity: {}
+
+# Service configuration
+service:
+  type: NodePort
+  # Annotations for the service
+  annotations: {}
+  
+  # PLC communication port
+  plc:
+    port: 11740
+    targetPort: 11740
+    nodePort: 31740
+    protocol: TCP
+  
+  # Web visualization port
+  webvisu:
+    port: 2455
+    targetPort: 2455
+    nodePort: 32455
+    protocol: TCP
+  
+  # OPC UA port
+  opcua:
+    port: 4840
+    targetPort: 4840
+    nodePort: 34840
+    protocol: TCP
+
+# Persistent storage configuration
+persistence:
+  # Enable persistence
+  enabled: true
+  
+  # Storage class (leave empty for default)
+  storageClass: ""
+  
+  # Projects volume
+  projects:
+    enabled: true
+    size: 5Gi
+    accessMode: ReadWriteOnce
+    # existingClaim: ""
+  
+  # License volume
+  license:
+    enabled: true
+    size: 100Mi
+    accessMode: ReadWriteOnce
+    # existingClaim: ""
+
+# ConfigMap for runtime configuration
+config:
+  # CODESYS Control configuration file
+  codesysControl: |
+    [SysProcess]
+    Command.0=locale
+    Command.1=ifconfig
+    
+    [CmpSettings]
+    MaxFileSize=10000000
+    
+    [SysFile]
+    PlcLogicPrefix=1
+    
+    [CmpLog]
+    Logger.0.Name=StdOut
+    Logger.0.Filter=0x0000000F
+    Logger.0.Enable=1
+    Logger.0.MaxEntries=1000
+    Logger.0.Type=0x314
+    
+    [CmpApp]
+    Application.1=Application
+    
+    [Application]
+    ProjectFile=/var/opt/codesys/projects/Application.app
+    BootprojectAutostart=YES
+    
+    [SysCom]
+    Linux.Devicefile=/dev/null
+    
+    [CmpBlkDrvTcp]
+    TcpPort=11740
+    MaxChannels=10
+    
+    [CmpWebServer]
+    WebServerPort=2455
+    MaxConnections=10
+    DefaultPage=webvisu.htm
+    
+    [CmpOPCUAServer]
+    ServerPort=4840
+    Enabled=1
+    
+    [SysSocket]
+    Adapter.0.Name=eth0
+    Adapter.0.EnableSetIpAndMask=0
+  
+  # Runtime environment variables
+  runtimeEnv: |
+    CODESYS_LOG_LEVEL=INFO
+    CODESYS_MAX_APPLICATIONS=4
+    CODESYS_CYCLE_TIME_MS=10
+
+# Health check probes
+livenessProbe:
+  enabled: true
+  exec:
+    command:
+      - /bin/sh
+      - -c
+      - pidof codesyscontrol
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  tcpSocket:
+    port: 11740
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  enabled: true
+  tcpSocket:
+    port: 11740
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 12
+
+# Init container for permission setup
+initContainer:
+  enabled: true
+  image: busybox:latest
+  command:
+    - sh
+    - -c
+    - chmod -R 755 /var/opt/codesys/projects && chmod -R 755 /var/opt/codesys/license
+
+# Environment variables
+env: []
+  # - name: CUSTOM_VAR
+  #   value: "custom_value"
+
+# License configuration
+# Use this to mount a license file from a Kubernetes Secret
+license:
+  # Use existing secret for license file
+  useSecret: false
+  secretName: ""
+  # secretKey: license.lic

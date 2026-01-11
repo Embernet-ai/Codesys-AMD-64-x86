@@ -1,0 +1,175 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "codesys-x86.fullname" . }}
+  namespace: {{ include "codesys-x86.namespace" . }}
+  labels:
+    {{- include "codesys-x86.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "codesys-x86.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "codesys-x86.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.serviceAccount.create }}
+      serviceAccountName: {{ include "codesys-x86.serviceAccountName" . }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      
+      # Node selector for architecture
+      nodeSelector:
+        kubernetes.io/arch: {{ .Values.architecture }}
+        {{- with .Values.nodeSelector }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- if .Values.initContainer.enabled }}
+      initContainers:
+        - name: setup-permissions
+          image: {{ .Values.initContainer.image }}
+          command:
+            {{- toYaml .Values.initContainer.command | nindent 12 }}
+          volumeMounts:
+            {{- if .Values.persistence.projects.enabled }}
+            - name: codesys-projects
+              mountPath: /var/opt/codesys/projects
+            {{- end }}
+            {{- if .Values.persistence.license.enabled }}
+            - name: codesys-license
+              mountPath: /var/opt/codesys/license
+            {{- end }}
+      {{- end }}
+      
+      containers:
+        - name: codesys-runtime
+          image: {{ include "codesys-x86.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          
+          resources:
+            {{- include "codesys-x86.resources" . | nindent 12 }}
+          
+          ports:
+            - name: plc-comm
+              containerPort: {{ .Values.service.plc.targetPort }}
+              protocol: TCP
+            - name: webvisu
+              containerPort: {{ .Values.service.webvisu.targetPort }}
+              protocol: TCP
+            - name: opcua
+              containerPort: {{ .Values.service.opcua.targetPort }}
+              protocol: TCP
+          
+          env:
+            - name: CODESYS_ARCHITECTURE
+              value: {{ .Values.architecture | quote }}
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            {{- with .Values.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          
+          volumeMounts:
+            {{- if .Values.persistence.projects.enabled }}
+            - name: codesys-projects
+              mountPath: /var/opt/codesys/projects
+            {{- end }}
+            {{- if or .Values.persistence.license.enabled .Values.license.useSecret }}
+            - name: codesys-license
+              mountPath: /var/opt/codesys/license
+            {{- end }}
+            - name: runtime-config
+              mountPath: /opt/codesys/config
+          
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            {{- if .Values.livenessProbe.exec }}
+            exec:
+              {{- toYaml .Values.livenessProbe.exec | nindent 14 }}
+            {{- end }}
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          {{- end }}
+          
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.readinessProbe.tcpSocket.port }}
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          {{- end }}
+          
+          {{- if .Values.startupProbe.enabled }}
+          startupProbe:
+            tcpSocket:
+              port: {{ .Values.startupProbe.tcpSocket.port }}
+            initialDelaySeconds: {{ .Values.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.startupProbe.failureThreshold }}
+          {{- end }}
+      
+      volumes:
+        {{- if .Values.persistence.projects.enabled }}
+        - name: codesys-projects
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.projects.existingClaim | default (printf "%s-projects" (include "codesys-x86.fullname" .)) }}
+        {{- end }}
+        {{- if .Values.persistence.license.enabled }}
+        - name: codesys-license
+          {{- if .Values.license.useSecret }}
+          secret:
+            secretName: {{ .Values.license.secretName }}
+          {{- else }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.license.existingClaim | default (printf "%s-license" (include "codesys-x86.fullname" .)) }}
+          {{- end }}
+        {{- end }}
+        - name: runtime-config
+          configMap:
+            name: {{ include "codesys-x86.fullname" . }}-config
+      
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always

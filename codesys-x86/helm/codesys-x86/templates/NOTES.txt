@@ -1,0 +1,140 @@
+CODESYS Control for Linux (x86) has been successfully deployed!
+
+Chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+Release: {{ .Release.Name }}
+Namespace: {{ include "codesys-x86.namespace" . }}
+Architecture: {{ .Values.architecture }}
+
+================================================================================
+DEPLOYMENT INFORMATION
+================================================================================
+
+Your CODESYS runtime is deploying. It may take a few minutes to be ready.
+
+1. Check the deployment status:
+
+   kubectl get pods -n {{ include "codesys-x86.namespace" . }} -l app.kubernetes.io/instance={{ .Release.Name }}
+
+2. View the logs:
+
+   kubectl logs -n {{ include "codesys-x86.namespace" . }} -l app.kubernetes.io/instance={{ .Release.Name }} -f
+
+3. Wait for the deployment to be ready:
+
+   kubectl rollout status deployment/{{ include "codesys-x86.fullname" . }} -n {{ include "codesys-x86.namespace" . }}
+
+================================================================================
+ACCESS INFORMATION
+================================================================================
+
+{{- if eq .Values.service.type "NodePort" }}
+
+The CODESYS runtime is exposed via NodePort. Get the node IP and ports:
+
+   export NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
+   export PLC_PORT={{ .Values.service.plc.nodePort }}
+   export WEB_PORT={{ .Values.service.webvisu.nodePort }}
+   export OPCUA_PORT={{ .Values.service.opcua.nodePort }}
+
+   echo "PLC Communication: ${NODE_IP}:${PLC_PORT}"
+   echo "Web Visualization: http://${NODE_IP}:${WEB_PORT}"
+   echo "OPC UA Server: ${NODE_IP}:${OPCUA_PORT}"
+
+Connect from CODESYS IDE:
+   - Gateway: CODESYS Control for Linux SL
+   - IP Address: ${NODE_IP}
+   - Port: {{ .Values.service.plc.nodePort }}
+
+Access Web Visualization:
+   Open browser to: http://${NODE_IP}:{{ .Values.service.webvisu.nodePort }}
+
+{{- else if eq .Values.service.type "LoadBalancer" }}
+
+The CODESYS runtime is exposed via LoadBalancer. Get the external IP:
+
+   kubectl get svc {{ include "codesys-x86.fullname" . }} -n {{ include "codesys-x86.namespace" . }}
+
+   NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+
+{{- else if eq .Values.service.type "ClusterIP" }}
+
+The CODESYS runtime is only accessible within the cluster.
+
+To access from outside, use port-forwarding:
+
+   kubectl port-forward -n {{ include "codesys-x86.namespace" . }} \
+     svc/{{ include "codesys-x86.fullname" . }} \
+     11740:{{ .Values.service.plc.port }} \
+     2455:{{ .Values.service.webvisu.port }} \
+     4840:{{ .Values.service.opcua.port }}
+
+   Then connect to localhost:11740 from CODESYS IDE
+
+{{- end }}
+
+================================================================================
+STORAGE INFORMATION
+================================================================================
+
+{{- if .Values.persistence.enabled }}
+Persistent storage is enabled:
+
+Projects PVC: {{ .Values.persistence.projects.existingClaim | default (printf "%s-projects" (include "codesys-x86.fullname" .)) }}
+License PVC:  {{ .Values.persistence.license.existingClaim | default (printf "%s-license" (include "codesys-x86.fullname" .)) }}
+
+Check PVC status:
+   kubectl get pvc -n {{ include "codesys-x86.namespace" . }}
+
+{{- else }}
+WARNING: Persistent storage is disabled. Data will be lost on pod restart!
+{{- end }}
+
+================================================================================
+LICENSE CONFIGURATION
+================================================================================
+
+{{- if .Values.license.useSecret }}
+License is mounted from secret: {{ .Values.license.secretName }}
+{{- else }}
+To add a CODESYS license file:
+
+1. Copy the license to the pod:
+   kubectl cp /path/to/license.lic \
+     {{ include "codesys-x86.namespace" . }}/$(kubectl get pod -n {{ include "codesys-x86.namespace" . }} -l app.kubernetes.io/instance={{ .Release.Name }} -o jsonpath='{.items[0].metadata.name}'):/var/opt/codesys/license/
+
+2. Or create a secret and upgrade the release:
+   kubectl create secret generic codesys-license \
+     -n {{ include "codesys-x86.namespace" . }} \
+     --from-file=license.lic=/path/to/license.lic
+   
+   helm upgrade {{ .Release.Name }} {{ .Chart.Name }} \
+     --set license.useSecret=true \
+     --set license.secretName=codesys-license
+{{- end }}
+
+================================================================================
+USEFUL COMMANDS
+================================================================================
+
+# Get pod details
+kubectl describe pod -n {{ include "codesys-x86.namespace" . }} -l app.kubernetes.io/instance={{ .Release.Name }}
+
+# Shell into the container
+kubectl exec -it -n {{ include "codesys-x86.namespace" . }} \
+  deployment/{{ include "codesys-x86.fullname" . }} -- /bin/bash
+
+# View runtime configuration
+kubectl get configmap {{ include "codesys-x86.fullname" . }}-config -n {{ include "codesys-x86.namespace" . }} -o yaml
+
+# Scale the deployment
+kubectl scale deployment {{ include "codesys-x86.fullname" . }} -n {{ include "codesys-x86.namespace" . }} --replicas=1
+
+# Restart the deployment
+kubectl rollout restart deployment/{{ include "codesys-x86.fullname" . }} -n {{ include "codesys-x86.namespace" . }}
+
+# Uninstall the release
+helm uninstall {{ .Release.Name }} -n {{ include "codesys-x86.namespace" . }}
+
+================================================================================
+For more information, visit: {{ .Chart.Home }}
+================================================================================

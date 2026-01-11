@@ -1,0 +1,47 @@
+{{- if .Values.persistence.enabled }}
+{{- if .Values.persistence.projects.enabled }}
+{{- if not .Values.persistence.projects.existingClaim }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "codesys-x86.fullname" . }}-projects
+  namespace: {{ include "codesys-x86.namespace" . }}
+  labels:
+    {{- include "codesys-x86.labels" . | nindent 4 }}
+    component: storage
+    storage-type: projects
+spec:
+  accessModes:
+    - {{ .Values.persistence.projects.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.projects.size }}
+  {{- if .Values.persistence.storageClass }}
+  storageClassName: {{ .Values.persistence.storageClass }}
+  {{- end }}
+{{- end }}
+{{- end }}
+---
+{{- if .Values.persistence.license.enabled }}
+{{- if not .Values.persistence.license.existingClaim }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "codesys-x86.fullname" . }}-license
+  namespace: {{ include "codesys-x86.namespace" . }}
+  labels:
+    {{- include "codesys-x86.labels" . | nindent 4 }}
+    component: storage
+    storage-type: license
+spec:
+  accessModes:
+    - {{ .Values.persistence.license.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.license.size }}
+  {{- if .Values.persistence.storageClass }}
+  storageClassName: {{ .Values.persistence.storageClass }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
