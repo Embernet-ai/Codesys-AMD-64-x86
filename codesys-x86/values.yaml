@@ -4,19 +4,20 @@
 
 # CODESYS runtime configuration
 codesys:
-  version: "3.5.19.0"
+  version: "4.18.0.0"
   
 # Architecture selection - choose 'amd64' or '386'
 # Only one architecture deployment will be active
 architecture: amd64
 
 # Image configuration
+# GitHub Release: https://github.com/fireball-industries/CodesysControlLinuxAMD64X86/releases/tag/AMD64-X86
 image:
   registry: ghcr.io
-  repository: YOUR_ORG/codesys-control-x86
+  repository: fireball-industries/codesys-runtime-amd64
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "latest"
+  tag: "4.18.0.0"
 
 # Image pull secrets for private registries
 imagePullSecrets: []
@@ -94,29 +95,30 @@ affinity: {}
 
 # Service configuration
 service:
-  type: NodePort
-  # Annotations for the service
+  type: LoadBalancer
+  # Annotations for the service (e.g., MetalLB address pool)
   annotations: {}
+    # metallb.universe.tf/address-pool: industrial
   
   # PLC communication port
   plc:
     port: 11740
     targetPort: 11740
-    nodePort: 31740
+    nodePort: 31740  # Only used if type: NodePort
     protocol: TCP
   
   # Web visualization port
   webvisu:
     port: 2455
     targetPort: 2455
-    nodePort: 32455
+    nodePort: 32455  # Only used if type: NodePort
     protocol: TCP
   
   # OPC UA port
   opcua:
     port: 4840
     targetPort: 4840
-    nodePort: 34840
+    nodePort: 34840  # Only used if type: NodePort
     protocol: TCP
 
 # Persistent storage configuration
@@ -247,3 +249,135 @@ license:
   useSecret: false
   secretName: ""
   # secretKey: license.lic
+
+# ==================== Integration Configurations ====================
+# These configurations make it easy to connect your CODESYS PLC to other services
+# Note: Actual integration must be implemented in your PLC program using CODESYS libraries
+
+# Database integration configuration
+database:
+  # Enable database integration (creates environment variables for PLC program)
+  enabled: false
+  
+  # InfluxDB time-series database integration
+  influxdb:
+    enabled: false
+    # Service name in Kubernetes cluster
+    host: "influxdb-pod"
+    port: 8086
+    # Database name
+    database: "industrial_data"
+    # Authentication (creates secret if credentials provided)
+    username: ""
+    password: ""
+    # Use existing secret
+    existingSecret: ""
+    # Organization and bucket for InfluxDB v2
+    organization: "fireball-industries"
+    bucket: "plc_data"
+    # PLC Library: Use 'IoTLibrary' or 'OSCAT' InfluxDB client
+  
+  # TimescaleDB PostgreSQL-compatible time-series database
+  timescaledb:
+    enabled: false
+    # Service name in Kubernetes cluster
+    host: "timescaledb-pod"
+    port: 5432
+    database: "industrial_data"
+    # Schema for PLC data tables
+    schema: "plc_metrics"
+    # Authentication (creates secret if credentials provided)
+    username: "postgres"
+    password: ""
+    # Use existing secret
+    existingSecret: ""
+    # SSL mode: disable, require, verify-ca, verify-full
+    sslMode: "disable"
+    # PLC Library: Use 'PostgreSQL' OSCAT library or custom implementation
+  
+  # PostgreSQL general-purpose relational database
+  postgresql:
+    enabled: false
+    host: "postgresql-pod"
+    port: 5432
+    database: "codesys_data"
+    username: "postgres"
+    password: ""
+    existingSecret: ""
+    sslMode: "disable"
+    # PLC Library: Use 'PostgreSQL' OSCAT library or custom implementation
+
+# MQTT broker integration
+mqtt:
+  # Enable MQTT integration (creates environment variables for PLC program)
+  enabled: false
+  
+  # MQTT broker connection
+  broker:
+    # Service name in Kubernetes cluster
+    host: "mosquitto-mqtt-pod"
+    port: 1883
+    # Enable SSL/TLS
+    tls:
+      enabled: false
+      port: 8883
+    # Authentication
+    username: ""
+    password: ""
+    existingSecret: ""
+    # Client ID prefix (runtime will append unique identifier)
+    clientIdPrefix: "codesys-x86"
+    # Quality of Service (0, 1, 2)
+    qos: 1
+    # Retain messages
+    retain: false
+    # Keep alive interval (seconds)
+    keepAlive: 60
+    # PLC Library: Use 'IoTMQTT' library from CODESYS Store
+  
+  # Default topics configuration
+  topics:
+    # Base topic for this PLC
+    base: "factory/plc/codesys-x86"
+    # Status topic (online/offline)
+    status: "factory/plc/codesys-x86/status"
+    # Data publishing topic
+    data: "factory/plc/codesys-x86/data"
+    # Command subscription topic
+    command: "factory/plc/codesys-x86/command"
+
+# Prometheus monitoring integration
+monitoring:
+  # Enable ServiceMonitor for Prometheus Operator
+  serviceMonitor:
+    enabled: false
+    # Namespace where Prometheus is running
+    namespace: monitoring
+    # Scrape interval
+    interval: 30s
+    # Scrape timeout
+    scrapeTimeout: 10s
+    # Metric relabeling
+    relabelings: []
+    # Additional labels for ServiceMonitor
+    labels: {}
+    # Note: Requires 'CmpPrometheus' library in CODESYS or custom metrics exporter
+  
+  # Metrics endpoint configuration (if using CODESYS Prometheus library)
+  metrics:
+    enabled: false
+    # Port for metrics endpoint
+    port: 9273
+    # Path for metrics
+    path: /metrics
+
+# Grafana dashboard provisioning
+grafana:
+  # Enable dashboard ConfigMap
+  dashboards:
+    enabled: false
+    # Dashboard namespace
+    namespace: monitoring
+    # Labels for Grafana sidecar discovery
+    labels:
+      grafana_dashboard: "1"

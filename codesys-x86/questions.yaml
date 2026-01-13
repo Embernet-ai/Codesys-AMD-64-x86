@@ -1,0 +1,435 @@
+categories:
+  - Industrial Automation
+  - CODESYS
+  - PLC Runtime
+  - x86/AMD64
+
+questions:
+  # ========================================
+  # ARCHITECTURE SELECTION
+  # ========================================
+  - variable: architecture
+    label: CPU Architecture
+    description: "Target CPU architecture for deployment"
+    type: enum
+    default: amd64
+    required: true
+    group: "Architecture"
+    options:
+      - amd64
+      - "386"
+    show_subquestion_if: true
+    subquestions:
+      - variable: architectureDescription
+        label: Architecture Details
+        description: |
+          **amd64** (x86-64): 64-bit Intel/AMD processors
+          - Modern servers, industrial PCs, NUCs
+          - Higher performance, more memory
+          - Recommended for most deployments
+          
+          **386** (i386): 32-bit Intel/AMD processors
+          - Legacy industrial PCs, older hardware
+          - Lower resource requirements
+          - Compatibility with older systems
+        type: string
+
+  # ========================================
+  # IMAGE CONFIGURATION
+  # ========================================
+  - variable: image.registry
+    label: Container Registry
+    description: "Container image registry (e.g., ghcr.io, docker.io)"
+    type: string
+    default: "ghcr.io"
+    required: true
+    group: "Image Configuration"
+
+  - variable: image.repository
+    label: Image Repository
+    description: "CODESYS Control x86 container image repository"
+    type: string
+    default: "YOUR_ORG/codesys-control-x86"
+    required: true
+    group: "Image Configuration"
+
+  - variable: image.tag
+    label: Image Tag
+    description: "Container image tag (CODESYS version)"
+    type: string
+    default: "latest"
+    required: true
+    group: "Image Configuration"
+
+  - variable: codesys.version
+    label: CODESYS Version
+    description: "CODESYS Control for Linux version"
+    type: string
+    default: "3.5.19.0"
+    required: true
+    group: "Image Configuration"
+
+  # ========================================
+  # NAMESPACE
+  # ========================================
+  - variable: namespace.name
+    label: Namespace
+    description: "Kubernetes namespace for CODESYS runtime"
+    type: string
+    default: "codesys-x86"
+    required: true
+    group: "Namespace"
+
+  - variable: namespace.create
+    label: Create Namespace
+    description: "Automatically create namespace if it doesn't exist"
+    type: boolean
+    default: true
+    group: "Namespace"
+
+  # ========================================
+  # SERVICE CONFIGURATION
+  # ========================================
+  - variable: service.type
+    label: Service Type
+    description: "Kubernetes service type for PLC access"
+    type: enum
+    default: NodePort
+    required: true
+    group: "Network"
+    options:
+      - NodePort
+      - LoadBalancer
+      - ClusterIP
+
+  - variable: service.plc.port
+    label: PLC Communication Port
+    description: "CODESYS PLC programming port (default: 11740)"
+    type: int
+    default: 11740
+    required: true
+    group: "Network"
+
+  - variable: service.plc.nodePort
+    label: PLC NodePort
+    description: "External port for PLC communication (30000-32767, only for NodePort type)"
+    type: int
+    default: 31740
+    min: 30000
+    max: 32767
+    show_if: "service.type=NodePort"
+    group: "Network"
+
+  - variable: service.webvisu.port
+    label: WebVisu Port
+    description: "Web visualization port (default: 2455)"
+    type: int
+    default: 2455
+    required: true
+    group: "Network"
+
+  - variable: service.webvisu.nodePort
+    label: WebVisu NodePort
+    description: "External port for web visualization (30000-32767)"
+    type: int
+    default: 32455
+    min: 30000
+    max: 32767
+    show_if: "service.type=NodePort"
+    group: "Network"
+
+  - variable: service.opcua.port
+    label: OPC UA Port
+    description: "OPC UA server port (default: 4840)"
+    type: int
+    default: 4840
+    required: true
+    group: "Network"
+
+  - variable: service.opcua.nodePort
+    label: OPC UA NodePort
+    description: "External port for OPC UA server (30000-32767)"
+    type: int
+    default: 34840
+    min: 30000
+    max: 32767
+    show_if: "service.type=NodePort"
+    group: "Network"
+
+  # ========================================
+  # STORAGE CONFIGURATION
+  # ========================================
+  - variable: persistence.enabled
+    label: Enable Persistent Storage
+    description: "Enable persistent volumes for projects and license"
+    type: boolean
+    default: true
+    required: true
+    group: "Storage"
+
+  - variable: persistence.projects.enabled
+    label: Enable Projects Volume
+    description: "Persistent storage for PLC projects"
+    type: boolean
+    default: true
+    show_if: "persistence.enabled=true"
+    group: "Storage"
+
+  - variable: persistence.projects.size
+    label: Projects Volume Size
+    description: "Size of persistent volume for PLC projects"
+    type: string
+    default: "5Gi"
+    show_if: "persistence.projects.enabled=true"
+    group: "Storage"
+
+  - variable: persistence.license.enabled
+    label: Enable License Volume
+    description: "Persistent storage for CODESYS license"
+    type: boolean
+    default: true
+    show_if: "persistence.enabled=true"
+    group: "Storage"
+
+  - variable: persistence.license.size
+    label: License Volume Size
+    description: "Size of persistent volume for license file"
+    type: string
+    default: "100Mi"
+    show_if: "persistence.license.enabled=true"
+    group: "Storage"
+
+  - variable: persistence.storageClass
+    label: Storage Class
+    description: "Storage class name (leave empty for default, use 'local-path' for K3s)"
+    type: string
+    default: ""
+    show_if: "persistence.enabled=true"
+    group: "Storage"
+
+  # ========================================
+  # LICENSE CONFIGURATION
+  # ========================================
+  - variable: license.useSecret
+    label: Use Kubernetes Secret for License
+    description: "Mount license file from existing Kubernetes Secret"
+    type: boolean
+    default: false
+    group: "License"
+
+  - variable: license.secretName
+    label: License Secret Name
+    description: "Name of Kubernetes Secret containing license file"
+    type: string
+    default: ""
+    show_if: "license.useSecret=true"
+    group: "License"
+
+  # ========================================
+  # RESOURCES (AMD64)
+  # ========================================
+  - variable: resources.amd64.requests.cpu
+    label: CPU Request (AMD64)
+    description: "Guaranteed CPU allocation for AMD64 architecture"
+    type: string
+    default: "250m"
+    show_if: "architecture=amd64"
+    group: "Resources (AMD64)"
+
+  - variable: resources.amd64.requests.memory
+    label: Memory Request (AMD64)
+    description: "Guaranteed memory allocation for AMD64"
+    type: string
+    default: "256Mi"
+    show_if: "architecture=amd64"
+    group: "Resources (AMD64)"
+
+  - variable: resources.amd64.limits.cpu
+    label: CPU Limit (AMD64)
+    description: "Maximum CPU usage for AMD64 architecture"
+    type: string
+    default: "1000m"
+    show_if: "architecture=amd64"
+    group: "Resources (AMD64)"
+
+  - variable: resources.amd64.limits.memory
+    label: Memory Limit (AMD64)
+    description: "Maximum memory usage for AMD64"
+    type: string
+    default: "1Gi"
+    show_if: "architecture=amd64"
+    group: "Resources (AMD64)"
+
+  # ========================================
+  # RESOURCES (386)
+  # ========================================
+  - variable: resources.i386.requests.cpu
+    label: CPU Request (386)
+    description: "Guaranteed CPU allocation for 386 architecture"
+    type: string
+    default: "100m"
+    show_if: "architecture=386"
+    group: "Resources (386)"
+
+  - variable: resources.i386.requests.memory
+    label: Memory Request (386)
+    description: "Guaranteed memory allocation for 386"
+    type: string
+    default: "128Mi"
+    show_if: "architecture=386"
+    group: "Resources (386)"
+
+  - variable: resources.i386.limits.cpu
+    label: CPU Limit (386)
+    description: "Maximum CPU usage for 386 architecture"
+    type: string
+    default: "500m"
+    show_if: "architecture=386"
+    group: "Resources (386)"
+
+  - variable: resources.i386.limits.memory
+    label: Memory Limit (386)
+    description: "Maximum memory usage for 386"
+    type: string
+    default: "512Mi"
+    show_if: "architecture=386"
+    group: "Resources (386)"
+
+  # ========================================
+  # HEALTH PROBES
+  # ========================================
+  - variable: livenessProbe.enabled
+    label: Enable Liveness Probe
+    description: "Kubernetes liveness probe (restarts pod if unhealthy)"
+    type: boolean
+    default: true
+    group: "Health Checks"
+
+  - variable: livenessProbe.initialDelaySeconds
+    label: Liveness Initial Delay (seconds)
+    description: "Wait time before starting liveness probe"
+    type: int
+    default: 60
+    min: 30
+    max: 300
+    show_if: "livenessProbe.enabled=true"
+    group: "Health Checks"
+
+  - variable: livenessProbe.periodSeconds
+    label: Liveness Period (seconds)
+    description: "How often to perform liveness probe"
+    type: int
+    default: 30
+    min: 10
+    max: 120
+    show_if: "livenessProbe.enabled=true"
+    group: "Health Checks"
+
+  - variable: readinessProbe.enabled
+    label: Enable Readiness Probe
+    description: "Kubernetes readiness probe (removes from service if not ready)"
+    type: boolean
+    default: true
+    group: "Health Checks"
+
+  - variable: readinessProbe.initialDelaySeconds
+    label: Readiness Initial Delay (seconds)
+    description: "Wait time before starting readiness probe"
+    type: int
+    default: 30
+    min: 10
+    max: 120
+    show_if: "readinessProbe.enabled=true"
+    group: "Health Checks"
+
+  - variable: startupProbe.enabled
+    label: Enable Startup Probe
+    description: "Kubernetes startup probe (allows slow startup)"
+    type: boolean
+    default: true
+    group: "Health Checks"
+
+  # ========================================
+  # INIT CONTAINER
+  # ========================================
+  - variable: initContainer.enabled
+    label: Enable Init Container
+    description: "Run init container to set up permissions"
+    type: boolean
+    default: true
+    group: "Advanced"
+
+  # ========================================
+  # SECURITY
+  # ========================================
+  - variable: podSecurityContext.fsGroup
+    label: Filesystem Group ID
+    description: "Group ID for mounted volumes"
+    type: int
+    default: 1000
+    group: "Security"
+
+  - variable: securityContext.runAsUser
+    label: Run As User ID
+    description: "User ID to run container processes"
+    type: int
+    default: 1000
+    group: "Security"
+
+  - variable: securityContext.runAsGroup
+    label: Run As Group ID
+    description: "Group ID to run container processes"
+    type: int
+    default: 1000
+    group: "Security"
+
+  # ========================================
+  # SERVICE ACCOUNT
+  # ========================================
+  - variable: serviceAccount.create
+    label: Create Service Account
+    description: "Create dedicated Kubernetes ServiceAccount"
+    type: boolean
+    default: false
+    group: "Advanced"
+
+  - variable: serviceAccount.name
+    label: Service Account Name
+    description: "Custom ServiceAccount name (leave empty for auto-generated)"
+    type: string
+    default: ""
+    show_if: "serviceAccount.create=true"
+    group: "Advanced"
+
+  # ========================================
+  # POD CONFIGURATION
+  # ========================================
+  - variable: replicaCount
+    label: Replica Count
+    description: "Number of PLC runtime replicas (should be 1 for stateful PLC)"
+    type: int
+    default: 1
+    min: 1
+    max: 1
+    group: "Advanced"
+
+  - variable: nodeSelector
+    label: Node Selector
+    description: "Kubernetes node labels for pod placement (JSON format)"
+    type: string
+    default: "{}"
+    group: "Advanced"
+
+  - variable: tolerations
+    label: Tolerations
+    description: "Kubernetes tolerations for pod scheduling (JSON array format)"
+    type: string
+    default: "[]"
+    group: "Advanced"
+
+  - variable: podAnnotations
+    label: Pod Annotations
+    description: "Custom annotations for pod (JSON format)"
+    type: string
+    default: "{}"
+    group: "Advanced"

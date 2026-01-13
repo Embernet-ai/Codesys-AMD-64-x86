@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: codesys-x86
-  labels:
-    name: codesys-x86
-    architecture: x86
-    description: "CODESYS Control for Linux - x86 Architecture (amd64/386)"

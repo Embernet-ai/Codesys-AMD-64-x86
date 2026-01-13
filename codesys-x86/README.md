@@ -1,795 +1,536 @@
-# CODESYS Control for Linux - x86 Deployment
+# CODESYS Control for Linux x86/AMD64 - README
 
-> **Production-ready containerized CODESYS PLC runtime for x86 architectures (amd64 and 386) on K3s/Kubernetes**
+**Current Version:** CODESYS Control for Linux SL 4.18.0.0
 
-⚠️ **Note**: This deployment is **separate** from ARM architecture deployments. For ARM-based systems, refer to the ARM deployment documentation.
+**GitHub Release:** [AMD64-X86 Release](https://github.com/fireball-industries/CodesysControlLinuxAMD64X86/releases/tag/AMD64-X86)
 
-## 📋 Overview
+## Service Type Configuration Guide
 
-This project provides a complete solution for deploying CODESYS Control for Linux runtime in a containerized K3s environment, supporting both 64-bit (amd64) and 32-bit (386) x86 architectures. It's designed for controls engineers who need to run PLC applications in modern cloud-native infrastructure.
+### Understanding Kubernetes Service Types
 
-### Features
+The CODESYS chart supports multiple service types for different deployment scenarios. Choose the right service type based on your infrastructure and access requirements.
 
-- ✅ Multi-architecture Docker images (linux/amd64, linux/386)
-- ✅ Production-ready Kubernetes manifests for K3s
-- ✅ **Helm charts for simplified deployment**
-- ✅ Automated CI/CD with GitHub Actions
-- ✅ Persistent storage for PLC projects and configuration
-- ✅ Health monitoring with liveness and readiness probes
-- ✅ Configurable resource limits and requests
-- ✅ Support for CODESYS licensing
-- ✅ Web visualization and OPC UA support
-- ✅ Comprehensive deployment scripts
+#### Service Type: LoadBalancer (Default)
 
-### Architecture Support
-
-| Architecture | Platform | Status |
-|-------------|----------|--------|
-| x86_64 (amd64) | 64-bit Intel/AMD | ✅ Fully Supported |
-| x86 (i386) | 32-bit Intel/AMD | ✅ Fully Supported |
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- K3s or Kubernetes cluster (v1.24+)
-- kubectl configured to access your cluster
-- Helm 3.x (for Helm deployment) or kubectl (for manual deployment)
-- Docker with Buildx support (for building images)
-- CODESYS Control for Linux installer files
-
-### 1. Upload CODESYS Installers to GitHub Releases
-
-First, obtain the CODESYS Control for Linux installers and upload them to your GitHub repository releases.
-
-#### Installer Naming Convention
-
-Installers **must** follow this naming convention:
-
-```
-codesyscontrol-linux-<arch>-<version>.tar.gz
-```
-
-Examples:
-- `codesyscontrol-linux-x64-3.5.19.0.tar.gz` (for 64-bit)
-- `codesyscontrol-linux-x86-3.5.19.0.tar.gz` (for 32-bit)
-
-#### Steps to Upload
-
-1. **Create a new release** in your GitHub repository
-2. **Tag the release** with the CODESYS version (e.g., `v3.5.19.0`)
-3. **Upload the installer files** following the naming convention above
-4. Optionally, upload SHA256 checksum files (e.g., `codesyscontrol-linux-x64-3.5.19.0.tar.gz.sha256`)
-
-Example using GitHub CLI:
-```bash
-# Create release
-gh release create v3.5.19.0 \
-  --title "CODESYS Control v3.5.19.0" \
-  --notes "CODESYS Control for Linux installers"
-
-# Upload installers
-gh release upload v3.5.19.0 \
-  codesyscontrol-linux-x64-3.5.19.0.tar.gz \
-  codesyscontrol-linux-x86-3.5.19.0.tar.gz
-```
-
-### 2. Configure Your Environment
-
-Update the following files with your organization/repository details:
-
-**In `Dockerfile`** (line 47):
-```dockerfile
-INSTALLER_URL="https://github.com/YOUR_ORG/YOUR_REPO/releases/download/v${CODESYS_VERSION}/..."
-```
-
-**In `scripts/download-installer.sh`** (lines 17-18):
-```bash
-GITHUB_ORG="${GITHUB_ORG:-YOUR_ORG}"
-GITHUB_REPO="${GITHUB_REPO:-YOUR_REPO}"
-```
-
-**In `kubernetes/deployment.yaml`** (line 41):
-```yaml
-image: ghcr.io/YOUR_ORG/codesys-control-x86:latest
-```
-
-### 3. Build Multi-Architecture Docker Images
-
-```bash
-# Navigate to the project directory
-cd codesys-x86
-
-# Make scripts executable
-chmod +x scripts/*.sh
-
-# Build images (without pushing)
-./scripts/build.sh false latest
-
-# Build and push to GitHub Container Registry
-./scripts/build.sh true latest
-```
-
-The build script will:
-- Create a Docker Buildx builder for multi-arch builds
-- Build images for both linux/amd64 and linux/386
-- Tag images appropriately
-- Push to GitHub Container Registry (if specified)
-
-### 4. Deploy to K3s Cluster
-
-#### Option A: Using Helm (Recommended)
-
-```bash
-# Deploy for amd64 architecture
-./scripts/deploy-helm.sh amd64
-
-# Or deploy for 32-bit x86
-./scripts/deploy-helm.sh 386
-
-# Deploy with custom values file
-./scripts/deploy-helm.sh amd64 my-values.yaml
-```
-
-#### Option B: Using kubectl
-
-```bash
-# Deploy for amd64 architecture
-./scripts/deploy.sh amd64
-
-# Or deploy for 32-bit x86
-./scripts/deploy.sh 386
-```
-
-The deployment will:
-1. Create the `codesys-x86` namespace
-2. Apply ConfigMaps for runtime configuration
-3. Create PersistentVolumeClaims for storage
-4. Deploy the CODESYS runtime
-5. Expose services via NodePort
-6. Display connection information
-
-### 5. Verify Deployment
-
-```bash
-# Check pod status
-kubectl get pods -n codesys-x86
-
-# View logs
-kubectl logs -n codesys-x86 -l app=codesys-runtime -f
-
-# Check services
-kubectl get svc -n codesys-x86
-```
-
-## 📦 Project Structure
-
-```
-codesys-x86/
-├── Dockerfile                      # Multi-arch Dockerfile
-├── README.md                       # This file
-├── helm/
-│   └── codesys-x86/                # Helm chart
-│       ├── Chart.yaml              # Chart metadata
-│       ├── values.yaml             # Default configuration values
-│       ├── .helmignore             # Helm ignore patterns
-│       └── templates/              # Kubernetes templates
-│           ├── _helpers.tpl        # Template helpers
-│           ├── NOTES.txt           # Post-install notes
-│           ├── namespace.yaml      # Namespace template
-│           ├── deployment.yaml     # Deployment template
-│           ├── service.yaml        # Service template
-│           ├── serviceaccount.yaml # ServiceAccount template
-│           ├── configmap.yaml      # ConfigMap template
-│           └── pvc.yaml            # PVC template
-├── kubernetes/
-│   ├── namespace.yaml              # Namespace definition
-│   ├── deployment.yaml             # Deployment manifests (amd64 & 386)
-│   ├── service.yaml                # Service exposing ports
-│   ├── configmap.yaml              # Runtime configuration
-│   └── pvc.yaml                    # PersistentVolumeClaims
-├── scripts/
-│   ├── build.sh                    # Build multi-arch images
-│   ├── deploy.sh                   # Deploy to K3s (kubectl)
-│   ├── deploy-helm.sh              # Deploy to K3s (Helm)
-│   └── download-installer.sh       # Download installers from GitHub
-└── .github/
-    └── workflows/
-        └── build-and-push.yaml     # GitHub Actions CI/CD
-```
-
-## 🔧 Configuration
-
-### Using Helm Values
-
-The easiest way to configure the deployment is through Helm values. Edit [`helm/codesys-x86/values.yaml`](helm/codesys-x86/values.yaml) or create a custom values file:
+**Best for:** Production, k3s with MetalLB, cloud providers, multi-node clusters
 
 ```yaml
-# Custom values example
-architecture: amd64  # or 386
-
-image:
-  repository: YOUR_ORG/codesys-control-x86
-  tag: "latest"
-
-resources:
-  amd64:
-    limits:
-      cpu: 2000m
-      memory: 2Gi
-    requests:
-      cpu: 500m
-      memory: 512Mi
-
 service:
+  type: LoadBalancer
+  annotations:
+    metallb.universe.tf/address-pool: industrial  # For MetalLB
+    # loadBalancerIP: 192.168.1.100  # Optional: specific IP
   plc:
-    nodePort: 31740
+    port: 11740
+    targetPort: 11740
   webvisu:
+    port: 2455
+    targetPort: 2455
+  opcua:
+    port: 4840
+    targetPort: 4840
+```
+
+**Access Pattern:**
+- CODESYS IDE: `<load-balancer-ip>:11740`
+- WebVisu: `http://<load-balancer-ip>:2455`
+- OPC UA: `opc.tcp://<load-balancer-ip>:4840`
+
+**Advantages:**
+- ✅ Standard industrial ports (no NodePort range limits)
+- ✅ Automatic IP assignment
+- ✅ Professional appearance
+- ✅ Easier firewall rules
+- ✅ Works with Traefik/Ingress integration
+- ✅ Consistent with CODESYS ARM chart
+
+**Disadvantages:**
+- ❌ Requires load balancer (MetalLB for bare-metal)
+- ❌ May consume scarce IP addresses
+- ❌ Cloud providers may charge per LoadBalancer
+
+**MetalLB Configuration Example:**
+```yaml
+# Install MetalLB first:
+# kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml
+
+# Create IP address pool:
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: industrial
+  namespace: metallb-system
+spec:
+  addresses:
+  - 192.168.1.100-192.168.1.110  # Your factory network IPs
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: industrial
+  namespace: metallb-system
+```
+
+#### Service Type: NodePort
+
+**Best for:** Development, single-node clusters, direct access from factory network
+
+```yaml
+service:
+  type: NodePort
+  plc:
+    port: 11740
+    nodePort: 31740  # Accessible on every node at this port
+  webvisu:
+    port: 2455
     nodePort: 32455
-
-persistence:
-  projects:
-    size: 10Gi
-  license:
-    size: 100Mi
+  opcua:
+    port: 4840
+    nodePort: 34840
 ```
 
-Deploy with custom values:
-```bash
-helm install codesys-x86 ./helm/codesys-x86 \
-  --namespace codesys-x86 \
-  --create-namespace \
-  --values my-values.yaml
-```
+**Access Pattern:**
+- CODESYS IDE: `<any-node-ip>:31740`
+- WebVisu: `http://<any-node-ip>:32455`
+- OPC UA: `opc.tcp://<any-node-ip>:34840`
 
-### Runtime Configuration
+**Advantages:**
+- ✅ Simple configuration
+- ✅ No external load balancer required
+- ✅ Works on any Kubernetes cluster
+- ✅ Fixed port numbers for firewall rules
 
-Edit runtime configuration via Helm values or directly in [`kubernetes/configmap.yaml`](kubernetes/configmap.yaml):
+**Disadvantages:**
+- ❌ Ports 30000-32767 range only
+- ❌ Must know node IP addresses
+- ❌ No automatic failover
+- ❌ External firewall may block high ports
+
+#### Service Type: LoadBalancer
+
+**Best for:** Production, k3s with MetalLB, cloud providers, multi-node clusters
 
 ```yaml
-config:
-  codesysControl: |
-    [CmpBlkDrvTcp]
-    TcpPort=11740              # PLC communication port
-    
-    [CmpWebServer]
-    WebServerPort=2455         # Web visualization port
-    
-    [CmpOPCUAServer]
-    ServerPort=4840            # OPC UA port
-    Enabled=1
+service:
+  type: LoadBalancer
+  annotations:
+    metallb.universe.tf/address-pool: industrial  # For MetalLB
+    # loadBalancerIP: 192.168.1.100  # Optional: specific IP
+  plc:
+    port: 1217  # Standard CODESYS port
+    targetPort: 11740
+  webvisu:
+    port: 8080  # Standard HTTP alt port
+    targetPort: 2455
+  opcua:
+    port: 4840  # Standard OPC UA port
+    targetPort: 4840
 ```
 
-### Resource Limits
+**Access Pattern:**
+- CODESYS IDE: `<load-balancer-ip>:1217`
+- WebVisu: `http://<load-balancer-ip>:8080`
+- OPC UA: `opc.tcp://<load-balancer-ip>:4840`
 
-Adjust resource limits in [`kubernetes/deployment.yaml`](kubernetes/deployment.yaml) or via Helm values:
+**Advantages:**
+- ✅ Standard industrial ports
+- ✅ Automatic IP assignment
+- ✅ Professional appearance
+- ✅ Easier firewall rules
+- ✅ Works with Traefik/Ingress integration
+
+**Disadvantages:**
+- ❌ Requires load balancer (MetalLB for bare-metal)
+- ❌ May consume scarce IP addresses
+- ❌ Cloud providers may charge per LoadBalancer
+
+**MetalLB Configuration Example:**
+```yaml
+# Install MetalLB first:
+# kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml
+
+# Create IP address pool:
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: industrial
+  namespace: metallb-system
+spec:
+  addresses:
+  - 192.168.1.100-192.168.1.110  # Your factory network IPs
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: industrial
+  namespace: metallb-system
+```
+
+#### Service Type: ClusterIP
+
+**Best for:** Internal-only access, when using Ingress/Traefik, microservices architecture
 
 ```yaml
-resources:
-  amd64:
-    requests:
-      memory: "256Mi"
-      cpu: "250m"
-    limits:
-      memory: "1Gi"
-      cpu: "1000m"
+service:
+  type: ClusterIP
+  plc:
+    port: 1217
+    targetPort: 11740
+  webvisu:
+    port: 8080
+    targetPort: 2455
+  opcua:
+    port: 4840
+    targetPort: 4840
 ```
 
-### Persistent Storage
+**Access Pattern:**
+- Only accessible from within cluster
+- Use Ingress or Traefik for external access
+- Ideal for WebVisu with TLS termination
 
-The deployment uses two PersistentVolumeClaims:
-
-1. **codesys-projects-pvc** (5Gi) - Stores PLC applications and projects
-2. **codesys-license-pvc** (100Mi) - Stores license files
-
-To modify storage size via Helm:
+**Ingress Configuration for WebVisu:**
 ```yaml
-persistence:
-  projects:
-    size: 10Gi
-  license:
-    size: 200Mi
+ingress:
+  enabled: true
+  className: "traefik"  # or "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: plc-webvisu.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: codesys-x86
+              port:
+                number: 8080
+  tls:
+    - secretName: plc-webvisu-tls
+      hosts:
+        - plc-webvisu.example.com
 ```
 
-Or edit [`kubernetes/pvc.yaml`](kubernetes/pvc.yaml) directly.
+**Advantages:**
+- ✅ Most secure (not directly exposed)
+- ✅ No IP address consumption
+- ✅ Works with Ingress controllers
+- ✅ TLS termination at ingress
+- ✅ Best for WebVisu/web interfaces
 
-## 🔐 CODESYS Licensing
+**Disadvantages:**
+- ❌ CODESYS IDE cannot connect directly (requires VPN or NodePort)
+- ❌ More complex configuration
+- ❌ Requires Ingress controller or Traefik
 
-### Installing a License File
+## Integration with Other Services
 
-#### Option 1: Using Helm with Secret
+### Database Connectivity
 
-```bash
-# Create secret from license file
-kubectl create secret generic codesys-license \
-  -n codesys-x86 \
-  --from-file=license.lic=/path/to/license.lic
+Connect your PLC program to databases for data logging, recipe management, or reporting.
 
-# Deploy with license secret
-helm install codesys-x86 ./helm/codesys-x86 \
-  --namespace codesys-x86 \
-  --create-namespace \
-  --set license.useSecret=true \
-  --set license.secretName=codesys-license
-```
-
-#### Option 2: Copy to Running Pod
-
-```bash
-kubectl cp /path/to/your/license.lic \
-  codesys-x86/$(kubectl get pod -n codesys-x86 -l app=codesys-runtime -o jsonpath='{.items[0].metadata.name}'):/var/opt/codesys/license/
-```
-
-#### Option 3: Manual Secret Mount
-
-Create secret and add to [`kubernetes/deployment.yaml`](kubernetes/deployment.yaml):
-```bash
-# Create secret from license file
-kubectl create secret generic codesys-license \
-  -n codesys-x86 \
-  --from-file=license.lic=/path/to/license.lic
-```
+#### InfluxDB Integration
 
 ```yaml
-volumeMounts:
-  - name: license
-    mountPath: /var/opt/codesys/license
-volumes:
-  - name: license
-    secret:
-      secretName: codesys-license
+database:
+  enabled: true
+  influxdb:
+    enabled: true
+    host: "influxdb-pod"  # Service name in cluster
+    port: 8086
+    database: "industrial_data"
+    organization: "fireball-industries"
+    bucket: "plc_data"
 ```
 
-### Demo/Evaluation Mode
+**In your CODESYS program:**
+```iecst
+(* Install IoTLibrary or OSCAT InfluxDB client *)
+PROGRAM PLC_PRG
+VAR
+    influxClient: InfluxDB_Client;
+    sHost: STRING := '${INFLUXDB_HOST}';  (* From environment *)
+    nPort: UINT := ${INFLUXDB_PORT};
+    sDatabase: STRING := '${INFLUXDB_DATABASE}';
+END_VAR
 
-CODESYS Control for Linux can run in demo mode with limitations:
-- 2 hours runtime per session
-- Application must be restarted after 2 hours
-
-For production use, obtain a proper license from CODESYS.
-
-## 🌐 Accessing the Runtime
-
-### From CODESYS Development System
-
-1. Open CODESYS IDE
-2. Go to **Tools > Update Raspberry Pi**... or **Scan Network**
-3. Or manually configure connection:
-   - **Gateway**: Select "CODESYS Control for Linux SL"
-   - **IP Address**: `<NODE_IP>`
-   - **Port**: `<PLC_PORT>` (default: 31740)
-
-### Web Visualization
-
-Access the web visualization at:
-```
-http://<NODE_IP>:<WEB_PORT>
+(* Write measurement *)
+influxClient.WriteMeasurement(
+    measurement := 'temperature',
+    tags := 'sensor=tank1,location=building2',
+    fields := 'value=72.5',
+    timestamp := NOW()
+);
 ```
 
-Example: `http://192.168.1.100:32455`
+#### TimescaleDB/PostgreSQL Integration
 
-### Connection Details
-
-After deployment, the script displays connection information:
-
-```bash
-Access URLs:
-  - CODESYS IDE: Connect to 192.168.1.100:31740
-  - Web Visualization: http://192.168.1.100:32455
+```yaml
+database:
+  enabled: true
+  timescaledb:
+    enabled: true
+    host: "timescaledb-pod"
+    port: 5432
+    database: "industrial_data"
+    schema: "plc_metrics"
+    username: "postgres"
+    password: "yourpassword"  # Or use existingSecret
 ```
 
-## � Helm Chart Usage
+**In your CODESYS program:**
+```iecst
+(* Install PostgreSQL OSCAT library *)
+PROGRAM PLC_PRG
+VAR
+    pgClient: PostgreSQL_Client;
+    sHost: STRING := '${TIMESCALEDB_HOST}';
+    nPort: UINT := ${TIMESCALEDB_PORT};
+    sDatabase: STRING := '${TIMESCALEDB_DATABASE}';
+END_VAR
 
-### Installation
-
-```bash
-# Install with default values
-helm install codesys-x86 ./helm/codesys-x86 \
-  --namespace codesys-x86 \
-  --create-namespace
-
-# Install for specific architecture
-helm install codesys-x86 ./helm/codesys-x86 \
-  --namespace codesys-x86 \
-  --create-namespace \
-  --set architecture=amd64
-
-# Install with custom values file
-helm install codesys-x86 ./helm/codesys-x86 \
-  --namespace codesys-x86 \
-  --create-namespace \
-  --values my-custom-values.yaml
+(* Execute query *)
+pgClient.ExecuteQuery(
+    query := 'INSERT INTO plc_metrics.sensor_data (timestamp, sensor, value) VALUES (NOW(), $1, $2)',
+    params := ['tank1_temp', '72.5']
+);
 ```
 
-### Upgrading
+### MQTT Integration
 
-```bash
-# Upgrade with new values
-helm upgrade codesys-x86 ./helm/codesys-x86 \
-  --namespace codesys-x86 \
-  --set resources.amd64.limits.memory=2Gi
+Connect to MQTT broker for publish/subscribe messaging with other systems.
 
-# Upgrade with custom values file
-helm upgrade codesys-x86 ./helm/codesys-x86 \
-  --namespace codesys-x86 \
-  --values my-custom-values.yaml \
-  --wait
+```yaml
+mqtt:
+  enabled: true
+  broker:
+    host: "mosquitto-mqtt-pod"
+    port: 1883
+    username: ""  # Optional
+    password: ""  # Optional
+    clientIdPrefix: "codesys-x86"
+  topics:
+    base: "factory/plc/codesys-x86"
+    status: "factory/plc/codesys-x86/status"
+    data: "factory/plc/codesys-x86/data"
+    command: "factory/plc/codesys-x86/command"
 ```
 
-### Managing Releases
+**In your CODESYS program:**
+```iecst
+(* Install IoTMQTT library from CODESYS Store *)
+PROGRAM PLC_PRG
+VAR
+    mqttClient: IoTMQTT.MqttClient;
+    sHost: STRING := '${MQTT_HOST}';
+    nPort: UINT := ${MQTT_PORT};
+    sBaseTopic: STRING := '${MQTT_TOPIC_BASE}';
+END_VAR
 
-```bash
-# List releases
-helm list -n codesys-x86
+(* Publish sensor data *)
+mqttClient.Publish(
+    topic := CONCAT(sBaseTopic, '/data/temperature'),
+    payload := '{"sensor":"tank1","value":72.5}',
+    qos := 1,
+    retain := FALSE
+);
 
-# Get release status
-helm status codesys-x86 -n codesys-x86
-
-# Get values used in the release
-helm get values codesys-x86 -n codesys-x86
-
-# Get all computed values
-helm get values codesys-x86 -n codesys-x86 --all
-
-# View release history
-helm history codesys-x86 -n codesys-x86
-
-# Rollback to previous revision
-helm rollback codesys-x86 -n codesys-x86
+(* Subscribe to commands *)
+mqttClient.Subscribe(
+    topic := CONCAT(sBaseTopic, '/command/#'),
+    qos := 1
+);
 ```
 
-### Customization Examples
+### Prometheus Monitoring
 
-#### Example 1: Production Configuration
+Enable metrics export for monitoring and alerting.
 
-Create `production-values.yaml`:
+```yaml
+monitoring:
+  serviceMonitor:
+    enabled: true
+    namespace: monitoring
+    interval: 30s
+  metrics:
+    enabled: true
+    port: 9273
+    path: /metrics
+```
+
+**Metrics Exposed:**
+- PLC cycle time
+- Task execution duration
+- I/O update time
+- Memory usage
+- CPU usage per task
+- Application runtime
+
+**Note:** Requires CODESYS CmpPrometheus library or custom exporter.
+
+## Advanced Deployment Scenarios
+
+### Scenario 1: Factory Edge with LoadBalancer (k3s + MetalLB)
+
 ```yaml
 architecture: amd64
-
-image:
-  pullPolicy: IfNotPresent
-  tag: "3.5.19.0"
-
+service:
+  type: LoadBalancer
+  annotations:
+    metallb.universe.tf/address-pool: factory-floor
+  plc:
+    port: 1217
+  webvisu:
+    port: 8080
+database:
+  enabled: true
+  timescaledb:
+    enabled: true
+    host: "timescaledb-pod"
+mqtt:
+  enabled: true
+  broker:
+    host: "mosquitto-mqtt-pod"
+monitoring:
+  serviceMonitor:
+    enabled: true
+persistence:
+  enabled: true
+  projects:
+    size: 10Gi
 resources:
   amd64:
-    limits:
-      cpu: 2000m
-      memory: 2Gi
     requests:
-      cpu: 500m
-      memory: 512Mi
+      cpu: "1000m"
+      memory: "1Gi"
+    limits:
+      cpu: "2000m"
+      memory: "2Gi"
+```
 
-persistence:
-  storageClass: "fast-ssd"
-  projects:
-    size: 20Gi
-  license:
-    size: 100Mi
+**Use Case:** Production factory floor automation with data logging, MQTT messaging, and monitoring.
 
+### Scenario 2: Development Environment (NodePort)
+
+```yaml
+architecture: amd64
 service:
   type: NodePort
   plc:
     nodePort: 31740
   webvisu:
     nodePort: 32455
-
-license:
-  useSecret: true
-  secretName: codesys-production-license
-
-nodeSelector:
-  environment: production
-```
-
-Deploy:
-```bash
-helm install codesys-prod ./helm/codesys-x86 \
-  --namespace codesys-x86 \
-  --create-namespace \
-  --values production-values.yaml
-```
-
-#### Example 2: Development/Testing Configuration
-
-Create `dev-values.yaml`:
-```yaml
-architecture: amd64
-
-replicaCount: 1
-
-resources:
-  amd64:
-    limits:
-      cpu: 1000m
-      memory: 512Mi
-    requests:
-      cpu: 100m
-      memory: 128Mi
-
 persistence:
+  enabled: true
   projects:
     size: 5Gi
+resources:
+  amd64:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+```
 
+**Use Case:** Development and testing on local cluster.
+
+### Scenario 3: Multi-Site with Ingress (ClusterIP)
+
+```yaml
+architecture: amd64
 service:
-  type: NodePort
-
-nodeSelector:
-  environment: development
+  type: ClusterIP
+ingress:
+  enabled: true
+  className: "traefik"
+  hosts:
+    - host: plc-site1.factory.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: plc-site1-tls
+      hosts:
+        - plc-site1.factory.com
+database:
+  enabled: true
+  postgresql:
+    enabled: true
+grafana:
+  dashboards:
+    enabled: true
 ```
 
-Deploy:
+**Use Case:** Multiple sites with centralized monitoring and secure web access.
+
+## Troubleshooting
+
+### Cannot Connect from CODESYS IDE
+
+**If using ClusterIP:**
+- ClusterIP is internal-only
+- Switch to NodePort or LoadBalancer
+- Or use `kubectl port-forward`
+
 ```bash
-helm install codesys-dev ./helm/codesys-x86 \
-  --namespace codesys-dev \
-  --create-namespace \
-  --values dev-values.yaml
+kubectl port-forward -n codesys-x86 svc/codesys-x86 1217:11740
+# Then connect to localhost:1217
 ```
 
-### Packaging and Distribution
-
+**If using LoadBalancer but no IP assigned:**
 ```bash
-# Package the chart
-helm package ./helm/codesys-x86
-
-# This creates codesys-x86-1.0.0.tgz
-
-# Install from package
-helm install codesys-x86 codesys-x86-1.0.0.tgz \
-  --namespace codesys-x86 \
-  --create-namespace
-
-# Push to OCI registry (optional)
-helm push codesys-x86-1.0.0.tgz oci://ghcr.io/YOUR_ORG/charts
-```
-
-## �🏗️ CI/CD with GitHub Actions
-
-The project includes automated builds via GitHub Actions.
-
-### Workflow Triggers
-
-- **Push to main**: Automatically builds and pushes images
-- **Pull requests**: Builds images for testing (doesn't push)
-- **Manual dispatch**: Build with custom CODESYS version
-
-### Manual Workflow Dispatch
-
-```bash
-# Via GitHub CLI
-gh workflow run build-and-push.yaml \
-  -f codesys_version=3.5.19.0 \
-  -f push_to_registry=true
-```
-
-### Workflow Configuration
-
-Edit [`.github/workflows/build-and-push.yaml`](.github/workflows/build-and-push.yaml) to customize:
-- Registry (default: GitHub Container Registry)
-- Platforms (currently: linux/amd64, linux/386)
-- Build arguments
-
-## 🛠️ Development & Customization
-
-### Building Locally
-
-```bash
-# Build for specific architecture
-docker buildx build \
-  --platform linux/amd64 \
-  --build-arg CODESYS_VERSION=3.5.19.0 \
-  -t codesys-control-x86:amd64 \
-  .
-
-# Build for both architectures
-docker buildx build \
-  --platform linux/amd64,linux/386 \
-  --build-arg CODESYS_VERSION=3.5.19.0 \
-  -t codesys-control-x86:latest \
-  --push \
-  .
-```
-
-### Testing Changes
-
-```bash
-# Build and load locally (single architecture only)
-docker buildx build \
-  --platform linux/amd64 \
-  --load \
-  -t codesys-control-x86:test \
-  .
-
-# Run container
-docker run -d \
-  -p 11740:11740 \
-  -p 2455:2455 \
-  --name codesys-test \
-  codesys-control-x86:test
-```
-
-### Modifying Configuration
-
-#### Using Helm
-
-```bash
-# Update values and upgrade
-helm upgrade codesys-x86 ./helm/codesys-x86 \
-  --namespace codesys-x86 \
-  --set architecture=amd64 \
-  --set resources.amd64.limits.memory=2Gi
-
-# Or with custom values file
-helm upgrade codesys-x86 ./helm/codesys-x86 \
-  --namespace codesys-x86 \
-  --values my-values.yaml
-```
-
-#### Using kubectl
-
-After modifying manifests, apply changes:
-
-```bash
-# Apply specific manifest
-kubectl apply -f kubernetes/deployment.yaml
-
-# Or redeploy everything
-./scripts/deploy.sh amd64
-```
-
-## 📊 Monitoring & Debugging
-
-### View Logs
-
-```bash
-# Follow logs
-kubectl logs -n codesys-x86 -l app=codesys-runtime -f
-
-# View logs from specific pod
-kubectl logs -n codesys-x86 <pod-name>
-
-# View logs from all containers
-kubectl logs -n codesys-x86 -l app=codesys-runtime --all-containers=true
-```
-
-### Shell Access
-
-```bash
-# Get shell in running container
-kubectl exec -it -n codesys-x86 deployment/codesys-runtime-amd64 -- /bin/bash
-
-# Check runtime status
-kubectl exec -n codesys-x86 deployment/codesys-runtime-amd64 -- ps aux | grep codesys
-```
-
-### Health Checks
-
-The deployment includes three types of probes:
-
-- **Startup Probe**: Ensures runtime starts within 60 seconds
-- **Liveness Probe**: Checks if codesyscontrol process is running
-- **Readiness Probe**: Verifies PLC port (11740) is accepting connections
-
-### Common Issues
-
-#### Pod not starting
-```bash
-# Check pod events
-kubectl describe pod -n codesys-x86 -l app=codesys-runtime
-
-# Check if PVC is bound
-kubectl get pvc -n codesys-x86
-```
-
-#### Cannot connect from CODESYS IDE
-```bash
-# Verify service is running
+# Check if LoadBalancer service has external IP
 kubectl get svc -n codesys-x86
 
-# Check if port is accessible
-telnet <NODE_IP> <PLC_PORT>
-
-# Verify firewall rules on K3s node
+# If EXTERNAL-IP shows <pending>:
+# - Install MetalLB (bare-metal)
+# - Or switch to NodePort
 ```
 
-#### License issues
+### WebVisu Not Accessible
+
+**Check service type and ports:**
 ```bash
-# Check license file
-kubectl exec -n codesys-x86 deployment/codesys-runtime-amd64 -- \
-  ls -la /var/opt/codesys/license/
-
-# View runtime logs for license errors
-kubectl logs -n codesys-x86 -l app=codesys-runtime | grep -i license
+kubectl get svc -n codesys-x86 -o wide
 ```
 
-## 🔄 Updating CODESYS Version
+**For LoadBalancer:**
+- Access via `http://<EXTERNAL-IP>:<webvisu-port>`
 
-1. **Upload new installer** to GitHub releases with appropriate version tag
-2. **Update version** in build script:
-   ```bash
-   export CODESYS_VERSION=3.5.20.0
-   ./scripts/build.sh true latest
-   ```
-3. **Update deployment**:
-   
-   **Using Helm:**
-   ```bash
-   helm upgrade codesys-x86 ./helm/codesys-x86 \
-     --namespace codesys-x86 \
-     --set image.tag=3.5.20.0
-   ```
-   
-   **Using kubectl:**
-   ```bash
-   kubectl set image deployment/codesys-runtime-amd64 \
-     -n codesys-x86 \
-     codesys-runtime=ghcr.io/YOUR_ORG/codesys-control-x86:3.5.20.0
-   ```
+**For NodePort:**
+- Access via `http://<node-ip>:<nodePort>`
 
-## 🗑️ Cleanup
+**For ClusterIP:**
+- Configure Ingress or use port-forward
 
-### Using Helm
+### Database Connection Fails
 
+**Verify database service is running:**
 ```bash
-# Uninstall the release (keeps PVCs by default)
-helm uninstall codesys-x86 -n codesys-x86
-
-# Delete namespace
-kubectl delete namespace codesys-x86
+kubectl get pods -n <database-namespace>
+kubectl logs -n <database-namespace> <database-pod>
 ```
 
-### Using kubectl
-
+**Check connectivity from PLC pod:**
 ```bash
-# Delete everything in namespace
-kubectl delete namespace codesys-x86
+kubectl exec -n codesys-x86 <plc-pod> -- ping influxdb-pod
+kubectl exec -n codesys-x86 <plc-pod> -- nc -zv influxdb-pod 8086
 ```
 
-### Remove PVCs (if needed)
+**Environment variables present:**
 ```bash
-# Delete PVCs manually if they weren't deleted with namespace
-kubectl delete pvc -n codesys-x86 codesys-projects-pvc codesys-license-pvc
+kubectl exec -n codesys-x86 <plc-pod> -- env | grep -i influx
 ```
 
-### Remove Docker images
-```bash
-# Remove local images
-docker rmi ghcr.io/YOUR_ORG/codesys-control-x86:latest
-```
+## Support and Documentation
 
-## 📚 Additional Resources
-
-- [CODESYS Official Documentation](https://help.codesys.com/)
-- [CODESYS Control for Linux](https://store.codesys.com/codesys-control-for-linux-sl.html)
-- [K3s Documentation](https://docs.k3s.io/)
-- [Docker Buildx Documentation](https://docs.docker.com/buildx/working-with-buildx/)
-
-## ⚠️ Important Notes
-
-### Separation from ARM Deployment
-
-This deployment is **completely separate** from any ARM-based CODESYS deployments:
-- Uses different namespace (`codesys-x86` vs ARM namespace)
-- Different container images (x86 architectures only)
-- Different node selectors (amd64/386 vs arm/arm64)
-- Can coexist in the same cluster without conflicts
-
-### Production Considerations
-
-- **Licensing**: Ensure proper CODESYS licenses for production
-- **Security**: Review and harden security contexts as needed
-- **Networking**: Configure firewall rules appropriately
-- **Backup**: Implement backup strategy for PVC data
-- **Monitoring**: Integrate with your monitoring stack (Prometheus, Grafana, etc.)
-- **High Availability**: For critical applications, consider StatefulSet with multiple replicas
-
-## 📝 License
-
-This deployment configuration is provided as-is. CODESYS Control for Linux is a commercial product from CODESYS GmbH and requires appropriate licensing.
-
-## 🤝 Contributing
-
-For issues, improvements, or questions, please open an issue in the repository.
+- **CODESYS Documentation:** https://www.codesys.com
+- **IEC 61131-3 Programming:** CODESYS Help System
+- **Library Downloads:** CODESYS Store
+- **Fireball Industries:** Contact your support representative
 
 ---
 
-**Architecture**: x86 only (amd64, 386) | **Status**: Production Ready | **Maintained**: Yes
+**Author:** Patrick Ryan, Fireball Industries  
+**Chart Version:** See Chart.yaml  
+**Last Updated:** January 2026
