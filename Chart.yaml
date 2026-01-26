@@ -2,9 +2,9 @@ apiVersion: v2
 name: codesys-control-sl
 description: CODESYS Control SL Runtime for Linux (Deployed via Installer Pattern)
 type: application
-version: 1.0.0
+version: 1.0.1
 appVersion: "4.18.0.0"
-icon: https://www.helpme-codesys.com//icons/CODESYS-logo.svg
+icon: https://embernet-ai.github.io/Codesys-AMD-64-x86/icon.png
 keywords:
   - codesys
   - plc

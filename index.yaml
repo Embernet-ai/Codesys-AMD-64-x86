@@ -8,7 +8,33 @@ entries:
       catalog.cattle.io/os: linux
     apiVersion: v2
     appVersion: 4.18.0.0
-    created: "2026-01-26T17:15:59.5577685-05:00"
+    created: "2026-01-26T19:55:34.5026933-03:00"
+    description: CODESYS Control SL Runtime for Linux (Deployed via Installer Pattern)
+    digest: b23dcf57cccc8ff1ced013c5f14671e466be0bae6ebf6c46cf1c49cacec14e0b
+    icon: https://embernet-ai.github.io/Codesys-AMD-64-x86/icon.png
+    keywords:
+    - codesys
+    - plc
+    - industrial
+    - automation
+    - ecava
+    maintainers:
+    - name: Embernet-ai
+    name: codesys-control-sl
+    sources:
+    - https://github.com/Embernet-ai/Codesys-AMD-64-x86
+    type: application
+    urls:
+    - https://embernet-ai.github.io/Codesys-AMD-64-x86/codesys-control-sl-1.0.1.tgz
+    version: 1.0.1
+  - annotations:
+      catalog.cattle.io/arch: amd64
+      catalog.cattle.io/certified: partner
+      catalog.cattle.io/display-name: Codesys Control SL
+      catalog.cattle.io/os: linux
+    apiVersion: v2
+    appVersion: 4.18.0.0
+    created: "2026-01-26T19:55:34.5011265-03:00"
     description: CODESYS Control SL Runtime for Linux (Deployed via Installer Pattern)
     digest: 2b25699faaeb3e70fb6e4b150e0265b38030161031430ededccb5b6a53037685
     icon: https://www.helpme-codesys.com//icons/CODESYS-logo.svg
@@ -27,4 +53,4 @@ entries:
     urls:
     - https://embernet-ai.github.io/Codesys-AMD-64-x86/codesys-control-sl-1.0.0.tgz
     version: 1.0.0
-generated: "2026-01-26T17:15:59.5572552-05:00"
+generated: "2026-01-26T19:55:34.5008814-03:00"
