@@ -14,3 +14,4 @@
 # Allow the packaged chart and index
 !*.tgz
 !index.yaml
+!icon.png
