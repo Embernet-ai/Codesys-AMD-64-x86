@@ -1,0 +1,43 @@
+# Default values for codesys-control-sl.
+
+image:
+  repository: debian
+  tag: bullseye
+  pullPolicy: IfNotPresent
+
+installerUrl: "https://github.com/Embernet-ai/Codesys-AMD-64-x86/releases/download/v4.18.0.0/CODESYS.Control.for.Linux.SL.4.18.0.0.package"
+
+persistence:
+  enabled: true
+  existingClaim: ""
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 5Gi
+  path: /var/opt/codesys
+
+securityContext:
+  privileged: true
+  capabilities:
+    add:
+      - NET_ADMIN
+      - SYS_TIME
+      - SYS_NICE
+
+service:
+  type: ClusterIP
+  gatewayPort: 1217
+  webVisuPort: 8080
+  opcuaPort: 4840
+
+resources:
+  limits:
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
