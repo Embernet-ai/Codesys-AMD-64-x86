@@ -1,0 +1,16 @@
+# Ignore everything
+*
+# But not these files...
+!.gitignore
+!README.md
+!Chart.yaml
+!values.yaml
+!templates/
+!templates/*.yaml
+!templates/*.tpl
+!LICENSE
+!.helmignore
+
+# Allow the packaged chart and index
+!*.tgz
+!index.yaml
