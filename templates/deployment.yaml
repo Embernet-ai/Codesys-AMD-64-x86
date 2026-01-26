@@ -1,0 +1,133 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "codesys-control-sl.fullname" . }}
+  labels:
+    {{- include "codesys-control-sl.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "codesys-control-sl.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "codesys-control-sl.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      
+      initContainers:
+        - name: download-installer
+          image: curlimages/curl:latest
+          command: ["sh", "-c"]
+          args:
+            - |
+              echo "Downloading installer from {{ .Values.installerUrl }}..."
+              # Create installer directory if it doesn't exist
+              mkdir -p /installer
+              # Download the package using -L to follow redirects
+              curl -L "{{ .Values.installerUrl }}" -o /installer/package.zip
+              
+              echo "Unzipping package..."
+              # Install unzip if not present (this is curlimages/curl, it might have unzip, or we use busybox unzip if available, 
+              # but curlimages/curl usually has basic tools. If not, we might need a different init image like alpine).
+              # Actually, curlimages/curl is very minimal. Let's use 'unzip' if available. 
+              # The provided pattern suggests 'unzip' is available or we should specificy an image that has it.
+              # Let's verify standard curl images or use a robust busybox/alpine for the download/unzip phase if needed.
+              # But sticking to the pattern:
+              unzip -o /installer/package.zip -d /installer
+              
+              echo "Download and extraction complete."
+          volumeMounts:
+            - name: installer-volume
+              mountPath: /installer
+
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -e
+              
+              # 1. Install Dependencies
+              echo "Checking dependencies..."
+              apt-get update
+              # Install required runtime libs and tools
+              # libcap2-bin is often needed for CODESYS
+              apt-get install -y libcap2-bin unzip iptables net-tools iproute2 procps
+              
+              # 2. Check and Install Codesys
+              CODE_BIN="/opt/codesys/bin/codesyscontrol.bin"
+              if [ ! -f "$CODE_BIN" ]; then
+                echo "CODESYS not found. Installing from /installer..."
+                
+                # The extracted package usually contains .deb files. 
+                # Let's find and install them.
+                if ls /installer/*.deb 1> /dev/null 2>&1; then
+                  dpkg -i /installer/*.deb
+                else 
+                  # Sometimes the zip contains folders. Structure check might be needed.
+                  # We assume the zip dumps .deb files or a structure we can find.
+                  # Recursive search for .deb just in case
+                  find /installer -name "*.deb" -exec dpkg -i {} \;
+                fi
+                
+                echo "Installation complete."
+              else
+                echo "CODESYS already installed."
+              fi
+              
+              # 3. Start Runtime
+              echo "Starting CODESYS Control..."
+              if [ -f "$CODE_BIN" ]; then
+                # Ensure the working directory is correct or config is pointed to
+                # The service usually starts via init.d or systemd, but in docker we run foreground.
+                # Standard CODESYS start command:
+                exec "$CODE_BIN" -d /etc/CODESYSControl.cfg
+              else
+                 echo "ERROR: Binary not found at $CODE_BIN"
+                 exit 1
+              fi
+          ports:
+            - name: gateway
+              containerPort: {{ .Values.service.gatewayPort }}
+              protocol: TCP
+            - name: webvisu
+              containerPort: {{ .Values.service.webVisuPort }}
+              protocol: TCP
+            - name: opcua
+              containerPort: {{ .Values.service.opcuaPort }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: codesys-data
+              mountPath: {{ .Values.persistence.path }}
+            - name: installer-volume
+              mountPath: /installer
+      
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      tolerations:
+        {{- toYaml .Values.tolerations | nindent 8 }}
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}
+      volumes:
+        - name: codesys-data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "codesys-control-sl.fullname" . }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: installer-volume
+          emptyDir: {}
