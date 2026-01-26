@@ -1,8 +1,6 @@
-# CODESYS Control SL Helm Chart
+# CODESYS Control SL for Linux
 
 Run the CODESYS Control SL Runtime on Kubernetes (K3s, Rancher) using the **Installer Download Pattern**.
-
-![CODESYS Logo](https://www.helpme-codesys.com//icons/CODESYS-logo.svg)
 
 ## Overview
 

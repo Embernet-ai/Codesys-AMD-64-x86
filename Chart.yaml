@@ -2,9 +2,9 @@ apiVersion: v2
 name: codesys-control-sl
 description: CODESYS Control SL Runtime for Linux (Deployed via Installer Pattern)
 type: application
-version: 1.0.1
+version: 1.0.3
 appVersion: "4.18.0.0"
-icon: https://embernet-ai.github.io/Codesys-AMD-64-x86/icon.png
+icon: https://www.helpme-codesys.com/icons/CODESYS-logo.svg
 keywords:
   - codesys
   - plc
@@ -17,6 +17,6 @@ maintainers:
   - name: Embernet-ai
 annotations:
   catalog.cattle.io/certified: partner
-  catalog.cattle.io/display-name: Codesys Control SL
+  catalog.cattle.io/display-name: "Codesys Control Linux Runtime X86"
   catalog.cattle.io/os: linux
   catalog.cattle.io/arch: amd64

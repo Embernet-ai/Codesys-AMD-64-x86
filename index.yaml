@@ -4,13 +4,39 @@ entries:
   - annotations:
       catalog.cattle.io/arch: amd64
       catalog.cattle.io/certified: partner
+      catalog.cattle.io/display-name: Codesys Control Linux Runtime X86
+      catalog.cattle.io/os: linux
+    apiVersion: v2
+    appVersion: 4.18.0.0
+    created: "2026-01-26T18:05:06.970502-05:00"
+    description: CODESYS Control SL Runtime for Linux (Deployed via Installer Pattern)
+    digest: 6531eba688dc9fd2f7c05f9c6eb9a9e95d1e9bee4b278b90c3cadbf6520e1789
+    icon: https://www.helpme-codesys.com/icons/CODESYS-logo.svg
+    keywords:
+    - codesys
+    - plc
+    - industrial
+    - automation
+    - ecava
+    maintainers:
+    - name: Embernet-ai
+    name: codesys-control-sl
+    sources:
+    - https://github.com/Embernet-ai/Codesys-AMD-64-x86
+    type: application
+    urls:
+    - https://embernet-ai.github.io/Codesys-AMD-64-x86/codesys-control-sl-1.0.3.tgz
+    version: 1.0.3
+  - annotations:
+      catalog.cattle.io/arch: amd64
+      catalog.cattle.io/certified: partner
       catalog.cattle.io/display-name: Codesys Control SL
       catalog.cattle.io/os: linux
     apiVersion: v2
     appVersion: 4.18.0.0
-    created: "2026-01-26T19:55:34.5026933-03:00"
+    created: "2026-01-26T18:05:06.9699923-05:00"
     description: CODESYS Control SL Runtime for Linux (Deployed via Installer Pattern)
-    digest: b23dcf57cccc8ff1ced013c5f14671e466be0bae6ebf6c46cf1c49cacec14e0b
+    digest: cec568dc6f2e999b0453247af90affc75a7674596cb21c5768f712c59990a2ea
     icon: https://embernet-ai.github.io/Codesys-AMD-64-x86/icon.png
     keywords:
     - codesys
@@ -34,7 +60,7 @@ entries:
       catalog.cattle.io/os: linux
     apiVersion: v2
     appVersion: 4.18.0.0
-    created: "2026-01-26T19:55:34.5011265-03:00"
+    created: "2026-01-26T18:05:06.968923-05:00"
     description: CODESYS Control SL Runtime for Linux (Deployed via Installer Pattern)
     digest: 2b25699faaeb3e70fb6e4b150e0265b38030161031430ededccb5b6a53037685
     icon: https://www.helpme-codesys.com//icons/CODESYS-logo.svg
@@ -53,4 +79,4 @@ entries:
     urls:
     - https://embernet-ai.github.io/Codesys-AMD-64-x86/codesys-control-sl-1.0.0.tgz
     version: 1.0.0
-generated: "2026-01-26T19:55:34.5008814-03:00"
+generated: "2026-01-26T18:05:06.9677678-05:00"
