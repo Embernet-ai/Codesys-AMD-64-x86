@@ -1,0 +1,123 @@
+# =============================================================================
+# CODESYS Control SL (AMD64/x86) — Default Configuration
+# =============================================================================
+# EmberNET Industrial Dashboard — Helm Chart Values
+# Fireball Industries — https://embernet.ai
+# =============================================================================
+
+# ==================== Container Image ====================
+image:
+  repository: debian
+  pullPolicy: IfNotPresent
+  tag: "bullseye"
+
+# ==================== CODESYS Installer ====================
+# The URL for the CODESYS package to download and install.
+# Provided: AMD64/x86 64-bit SL package
+installerUrl: "https://github.com/Embernet-ai/Codesys-AMD-64-x86/releases/download/v4.20.0.0/CODESYS.Control.for.Linux.SL.4.20.0.0.package"
+
+# ==================== Image Pull Secrets ====================
+imagePullSecrets: []
+
+# ==================== Replica Count ====================
+replicaCount: 1
+
+# ==================== Resource Limits ====================
+resources:
+  # PLC runtimes are real-time critical — do not under-provision
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+# ==================== Service ====================
+service:
+  type: ClusterIP
+  port: 8080
+  ports:
+    gateway: 1217
+    opcua: 4840
+    webvisu: 8080
+
+# ==================== Node Selector ====================
+# Injected by the Industrial Dashboard when deploying to specific nodes
+nodeSelector: {}
+
+# ==================== Tolerations ====================
+tolerations: []
+
+# ==================== Affinity ====================
+affinity: {}
+
+# ==================== GUI (Industrial Dashboard Discovery) ====================
+gui:
+  enabled: true
+  port: 8080
+  type: "web"
+  displayName: "CODESYS Control SL (AMD64)"
+
+# ==================== Persistence ====================
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 5Gi
+  path: /var/opt/codesys
+
+# ==================== Network ====================
+network:
+  hostNetwork: true
+  extraPorts: []
+
+# ==================== Security Context ====================
+securityContext:
+  # CODESYS requires privileged access for hardware and networking
+  privileged: true
+  allowPrivilegeEscalation: true
+
+# ==================== Sidecar Proxy ====================
+# URL-rewriting reverse proxy for Industrial Dashboard SPA integration.
+# CODESYS WebVisu is a simple server-rendered HTML5 HMI — sidecar is
+# NOT needed by default. Enable only if WebVisu assets break through proxy.
+sidecarProxy:
+  enabled: false
+  image:
+    repository: "nginxinc/nginx-unprivileged"
+    tag: "1.27-alpine"
+    pullPolicy: IfNotPresent
+  listenPort: 8081
+  upstream:
+    port: 8080
+  proxyBasePath: "/"
+  nginx:
+    workerProcesses: "auto"
+    workerConnections: 256
+    clientMaxBodySize: "10m"
+    logLevel: "warn"
+  resources:
+    requests:
+      cpu: "25m"
+      memory: "32Mi"
+    limits:
+      cpu: "200m"
+      memory: "128Mi"
+  securityContext:
+    runAsUser: 65534
+    runAsGroup: 65534
+    runAsNonRoot: true
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+# ==================== Environment Variables ====================
+env: []
+
+# ==================== Environment From ====================
+envFrom: []
+
+# ==================== App-Specific Config ====================
+config: {}

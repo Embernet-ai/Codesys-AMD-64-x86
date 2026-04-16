@@ -1,0 +1,228 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "codesys-pod.fullname" . }}
+  labels:
+    {{- include "codesys-pod.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount | default 1 }}
+  # Recreate strategy is REQUIRED when using hostNetwork + RWO PVC node affinity.
+  # RollingUpdate creates an unbreakable scheduling deadlock: new pod can't start
+  # because old pod holds the host ports on the only eligible node.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "codesys-pod.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "codesys-pod.selectorLabels" . | nindent 8 }}
+        {{- include "codesys-pod.storeLabels" . | nindent 8 }}
+      {{- if .Values.sidecarProxy.enabled }}
+      annotations:
+        checksum/sidecar-proxy: {{ include (print $.Template.BasePath "/configmap-sidecar-proxy.yaml") . | sha256sum }}
+      {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.network.hostNetwork }}
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      {{- else }}
+      dnsPolicy: ClusterFirst
+      {{- end }}
+
+      initContainers:
+        - name: download-installer
+          image: curlimages/curl:latest
+          command:
+            - sh
+            - -c
+            - |
+              echo "Downloading installer from {{ .Values.installerUrl }}..."
+              mkdir -p /installer
+              curl -L "{{ .Values.installerUrl }}" -o /installer/package.zip
+              echo "Unzipping..."
+              unzip -o /installer/package.zip -d /installer
+              echo "Download and extraction complete."
+          volumeMounts:
+            - name: installer-volume
+              mountPath: /installer
+
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/bash
+            - -c
+            - |
+              echo "Checking for CODESYS installation..."
+
+              # Function to install dependencies if missing
+              install_deps() {
+                echo "Installing dependencies..."
+                apt-get update
+                apt-get install -y libcap2-bin unzip iptables net-tools iproute2 procps
+              }
+
+              # Look for the .deb file extracted by initContainer
+              DEB_FILE=$(find /installer -name "*codesyscontrol*.deb" -o -name "*CODESYS*.deb" | head -n 1)
+
+              if [ -z "$DEB_FILE" ]; then
+                echo "ERROR: No .deb file found in /installer"
+                ls -R /installer
+                exit 1
+              fi
+
+              # Check if already installed
+              if ! dpkg-query -W -f='${Status}' codesyscontrol 2>/dev/null | grep -q "install ok installed"; then
+                echo "Installing CODESYS from $DEB_FILE..."
+                install_deps
+                dpkg -i "$DEB_FILE" || apt-get install -f -y
+                echo "Installation complete."
+              else
+                echo "CODESYS already installed."
+              fi
+
+              # Ensure persistence directory exists and permissions are correct
+              mkdir -p /var/opt/codesys
+
+              echo "Starting CODESYS Control..."
+              # The binary location usually is /opt/codesys/bin/codesyscontrol.bin
+              if [ -f "/opt/codesys/bin/codesyscontrol.bin" ]; then
+                 /opt/codesys/bin/codesyscontrol.bin -d /etc/CODESYSControl.cfg
+              else
+                 echo "Binary not found, searching..."
+                 find /opt -name "codesyscontrol.bin"
+                 exit 1
+              fi
+          ports:
+            - name: gateway
+              containerPort: {{ .Values.service.ports.gateway }}
+              protocol: TCP
+              {{- if .Values.network.hostNetwork }}
+              hostPort: {{ .Values.service.ports.gateway }}
+              {{- end }}
+            - name: opcua
+              containerPort: {{ .Values.service.ports.opcua }}
+              protocol: TCP
+              {{- if .Values.network.hostNetwork }}
+              hostPort: {{ .Values.service.ports.opcua }}
+              {{- end }}
+            - name: webvisu
+              containerPort: {{ .Values.service.ports.webvisu }}
+              protocol: TCP
+              {{- if .Values.network.hostNetwork }}
+              hostPort: {{ .Values.service.ports.webvisu }}
+              {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.persistence.path }}
+            - name: installer-volume
+              mountPath: /installer
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- with .Values.env }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+        # ── Sidecar Reverse Proxy (MUST be last container) ──────────────
+        {{- if .Values.sidecarProxy.enabled }}
+        - name: sidecar-proxy
+          image: "{{ .Values.sidecarProxy.image.repository }}:{{ .Values.sidecarProxy.image.tag }}"
+          imagePullPolicy: {{ .Values.sidecarProxy.image.pullPolicy }}
+          ports:
+            - name: proxy-http
+              containerPort: {{ .Values.sidecarProxy.listenPort }}
+              protocol: TCP
+              {{- if .Values.network.hostNetwork }}
+              hostPort: {{ .Values.sidecarProxy.listenPort }}
+              {{- end }}
+          volumeMounts:
+            - name: sidecar-proxy-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              readOnly: true
+            - name: sidecar-proxy-tmp
+              mountPath: /tmp
+            - name: sidecar-proxy-cache
+              mountPath: /var/cache/nginx
+            - name: sidecar-proxy-run
+              mountPath: /var/run
+          resources:
+            {{- toYaml .Values.sidecarProxy.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.sidecarProxy.securityContext | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /sidecar-health
+              port: {{ .Values.sidecarProxy.listenPort }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /sidecar-health
+              port: {{ .Values.sidecarProxy.listenPort }}
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /sidecar-health
+              port: {{ .Values.sidecarProxy.listenPort }}
+            initialDelaySeconds: 2
+            periodSeconds: 3
+            timeoutSeconds: 3
+            failureThreshold: 10
+        {{- end }}
+
+      volumes:
+        - name: data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "codesys-pod.fullname" . }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: installer-volume
+          emptyDir: {}
+        {{- if .Values.sidecarProxy.enabled }}
+        - name: sidecar-proxy-config
+          configMap:
+            name: {{ include "codesys-pod.fullname" . }}-sidecar-proxy
+        - name: sidecar-proxy-tmp
+          emptyDir:
+            sizeLimit: 64Mi
+        - name: sidecar-proxy-cache
+          emptyDir:
+            sizeLimit: 64Mi
+        - name: sidecar-proxy-run
+          emptyDir:
+            sizeLimit: 1Mi
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

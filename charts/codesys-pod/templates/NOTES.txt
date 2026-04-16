@@ -1,0 +1,42 @@
+===============================================================================
+  CODESYS Control SL (AMD64/x86) — deployed successfully!
+===============================================================================
+
+  Chart Version:  {{ .Chart.Version }}
+  App Version:    {{ .Chart.AppVersion }}
+  Release Name:   {{ .Release.Name }}
+  Namespace:      {{ .Release.Namespace }}
+
+  CODESYS Ports:
+    Gateway (IDE):    {{ .Values.service.ports.gateway }}
+    OPC UA Server:    {{ .Values.service.ports.opcua }}
+    Web Visualization: {{ .Values.service.ports.webvisu }}
+
+{{- if .Values.network.hostNetwork }}
+
+  Host Networking:  ENABLED (OT Platform Mode)
+  DNS Policy:       ClusterFirstWithHostNet
+  Access:           http://<NODE-IP>:{{ .Values.service.ports.webvisu }}
+{{- else }}
+
+  Host Networking:  DISABLED
+  DNS Policy:       ClusterFirst
+  Access via Service:
+    kubectl port-forward svc/{{ include "codesys-pod.fullname" . }} {{ .Values.service.ports.webvisu }}:{{ .Values.service.ports.webvisu }}
+{{- end }}
+
+{{- if .Values.sidecarProxy.enabled }}
+
+  Sidecar Proxy:    ENABLED (port {{ .Values.sidecarProxy.listenPort }})
+  Dashboard Port:   {{ .Values.sidecarProxy.listenPort }}
+{{- end }}
+
+  Industrial Dashboard Labels:
+    embernet.ai/store-app: "true"
+    embernet.ai/gui-type:  "{{ .Values.gui.type }}"
+    embernet.ai/app-name:  "{{ include "codesys-pod.name" . }}"
+    embernet.ai/gui-port:  "{{- if and .Values.sidecarProxy .Values.sidecarProxy.enabled }}{{ .Values.sidecarProxy.listenPort }}{{- else }}{{ .Values.gui.port | default .Values.service.port }}{{- end }}"
+
+===============================================================================
+  🔥 Fireball Industries — Ignite Your Factory Efficiency
+===============================================================================

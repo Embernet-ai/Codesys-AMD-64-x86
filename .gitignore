@@ -1,17 +1,32 @@
-# Ignore everything
-*
-# But not these files...
-!.gitignore
-!README.md
-!Chart.yaml
-!values.yaml
-!templates/
-!templates/*.yaml
-!templates/*.tpl
-!LICENSE
-!.helmignore
+# =============================================================================
+# EmberNET Helm Chart Repository — .gitignore
+# =============================================================================
 
-# Allow the packaged chart and index
-!*.tgz
-!index.yaml
+# Helm build artifacts (CI/CD generates these on gh-pages branch)
+*.tgz
+index.yaml
+.deploy/
+
+# IDE & OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Archive (old chart versions — keep tracked but ignore new additions)
+# _archive/ is tracked intentionally
+
+# Allow these files through
+!.gitignore
+!.gitattributes
+!.nojekyll
+!.github/
+!.github/**
+!README.md
+!RELEASE_CHECKLIST.md
+!CHANGELOG.md
+!charts/
+!charts/**
 !icon.png
+!_archive/
+!_archive/**

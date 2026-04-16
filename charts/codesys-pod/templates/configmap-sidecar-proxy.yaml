@@ -1,0 +1,130 @@
+{{- if .Values.sidecarProxy.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "codesys-pod.fullname" . }}-sidecar-proxy
+  labels:
+    {{- include "codesys-pod.labels" . | nindent 4 }}
+data:
+  nginx.conf: |
+    worker_processes {{ .Values.sidecarProxy.nginx.workerProcesses }};
+    error_log /tmp/error.log {{ .Values.sidecarProxy.nginx.logLevel }};
+    pid       /tmp/nginx.pid;
+
+    events {
+        worker_connections {{ .Values.sidecarProxy.nginx.workerConnections }};
+    }
+
+    http {
+        include       /etc/nginx/mime.types;
+        default_type  application/octet-stream;
+
+        # Temp paths for read-only root filesystem
+        client_body_temp_path /tmp/client_body;
+        proxy_temp_path       /tmp/proxy;
+        fastcgi_temp_path     /tmp/fastcgi;
+        uwsgi_temp_path       /tmp/uwsgi;
+        scgi_temp_path        /tmp/scgi;
+
+        access_log /tmp/access.log;
+        sendfile   on;
+        keepalive_timeout 65;
+        client_max_body_size {{ .Values.sidecarProxy.nginx.clientMaxBodySize }};
+
+        gzip on;
+        gzip_types
+            text/plain
+            text/css
+            text/xml
+            application/json
+            application/javascript
+            application/xml
+            application/xml+rss
+            text/javascript
+            image/svg+xml;
+
+        # WebSocket Upgrade Map
+        map $http_upgrade $connection_upgrade {
+            default upgrade;
+            ''      close;
+        }
+
+        # Upstream: Application Container (same pod)
+        upstream app_backend {
+            server 127.0.0.1:{{ .Values.sidecarProxy.upstream.port }};
+            keepalive 16;
+        }
+
+        server {
+            listen {{ .Values.sidecarProxy.listenPort }};
+            server_name _;
+
+            # Health Check
+            location = /sidecar-health {
+                access_log off;
+                add_header Content-Type application/json;
+                return 200 '{"status":"healthy","component":"sidecar-proxy","upstream":"127.0.0.1:{{ .Values.sidecarProxy.upstream.port }}","version":"1.0.0"}';
+            }
+
+            # Main Proxy with URL Rewriting
+            location / {
+                proxy_pass http://app_backend;
+
+                # Standard Proxy Headers
+                proxy_set_header Host              $host;
+                proxy_set_header X-Real-IP         $remote_addr;
+                proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+                proxy_set_header X-Forwarded-Host  $host;
+                proxy_set_header X-Forwarded-Prefix {{ .Values.sidecarProxy.proxyBasePath | quote }};
+
+                # WebSocket Passthrough
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade    $http_upgrade;
+                proxy_set_header Connection $connection_upgrade;
+
+                # Timeouts
+                proxy_connect_timeout  60s;
+                proxy_read_timeout    300s;
+                proxy_send_timeout    300s;
+
+                # Disable upstream compression for sub_filter
+                proxy_set_header Accept-Encoding "";
+
+                # URL Rewriting Engine
+                sub_filter_once off;
+                sub_filter_types text/html text/css application/javascript application/json;
+
+                # HTML Attribute Rewrites (absolute → relative)
+                sub_filter 'src="/'      'src="./' ;
+                sub_filter "src='/"      "src='./" ;
+                sub_filter 'href="/'     'href="./' ;
+                sub_filter "href='/"     "href='./" ;
+                sub_filter 'action="/'   'action="./' ;
+                sub_filter "action='/"   "action='./" ;
+
+                # JavaScript String Literal Rewrites
+                sub_filter '"/api/'      '"./api/' ;
+                sub_filter "'/api/"      "'./api/" ;
+                sub_filter '"/public/'   '"./public/' ;
+                sub_filter "'/public/"   "'./public/" ;
+
+                # CODESYS WebVisu-specific rewrites
+                sub_filter '"/webvisu'   '"./webvisu' ;
+                sub_filter "'/webvisu"   "'./webvisu" ;
+
+                # CSS url() Rewrites
+                sub_filter 'url(/'       'url(./' ;
+                sub_filter "url('/"      "url('./" ;
+                sub_filter 'url("/'      'url("./' ;
+
+                # Base Tag Injection
+                sub_filter '</head>' '<base href="{{ .Values.sidecarProxy.proxyBasePath }}" />\n</head>';
+
+                # Response Headers
+                add_header X-Proxy-By     "embernet-sidecar" always;
+                add_header X-Proxy-Target "127.0.0.1:{{ .Values.sidecarProxy.upstream.port }}" always;
+            }
+        }
+    }
+{{- end }}

@@ -1,0 +1,62 @@
+name: Publish Helm Chart
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'charts/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+      - name: Lint chart
+        run: helm lint charts/codesys-pod
+
+  publish:
+    needs: lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Package chart
+        run: |
+          mkdir -p .deploy
+          helm package charts/codesys-pod -d .deploy
+          # Fetch existing index from live site and merge (preserves old versions)
+          curl -sSL https://embernet-ai.github.io/Codesys-AMD-64-x86/index.yaml -o .deploy/existing-index.yaml || true
+          if [ -f .deploy/existing-index.yaml ]; then
+            helm repo index .deploy --url https://embernet-ai.github.io/Codesys-AMD-64-x86/ --merge .deploy/existing-index.yaml
+          else
+            helm repo index .deploy --url https://embernet-ai.github.io/Codesys-AMD-64-x86/
+          fi
+          rm -f .deploy/existing-index.yaml
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .deploy
+          keep_files: true
