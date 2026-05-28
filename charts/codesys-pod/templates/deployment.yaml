@@ -140,11 +140,23 @@ CTRL
               mkdir -p /var/opt/codesys
 
               echo "Starting CODESYS Control..."
-              # The binary location usually is /opt/codesys/bin/codesyscontrol.bin
-              if [ -f "/opt/codesys/bin/codesyscontrol.bin" ]; then
-                 /opt/codesys/bin/codesyscontrol.bin -d /etc/CODESYSControl.cfg
+              # Invocation matches the .deb's own /etc/init.d/codesyscontrol
+              # (line 65 of the deb-shipped init script):
+              #   cd /var/opt/codesys && /opt/codesys/bin/codesyscontrol.bin /etc/codesyscontrol/CODESYSControl.cfg
+              # The prior invocation `/etc/CODESYSControl.cfg` was a stale
+              # pre-3.5.16 path; the deb has installed CODESYSControl.cfg
+              # under /etc/codesyscontrol/ for years. With the wrong path
+              # the runtime falls back to internal defaults, skips loading
+              # CmpRetain, and CmpApp enters safe mode on the
+              # RetainUpdate import. There is no `-d` daemonize flag on
+              # codesyscontrol.bin — the deb's init script runs it in
+              # foreground (the SysV script just backgrounds it via `&`),
+              # which is exactly what we want for container PID 1.
+              if [ -x /opt/codesys/bin/codesyscontrol.bin ]; then
+                 cd /var/opt/codesys
+                 exec /opt/codesys/bin/codesyscontrol.bin /etc/codesyscontrol/CODESYSControl.cfg
               else
-                 echo "Binary not found, searching..."
+                 echo "Binary not found, searching..." >&2
                  find /opt -name "codesyscontrol.bin"
                  exit 1
               fi
