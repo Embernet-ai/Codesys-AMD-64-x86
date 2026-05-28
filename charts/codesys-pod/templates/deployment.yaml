@@ -62,29 +62,75 @@ spec:
             - /bin/bash
             - -c
             - |
+              set -e
               echo "Checking for CODESYS installation..."
 
-              # Function to install dependencies if missing
               install_deps() {
-                echo "Installing dependencies..."
+                echo "Installing OS dependencies..."
                 apt-get update
-                apt-get install -y libcap2-bin unzip iptables net-tools iproute2 procps
+                apt-get install -y libcap2-bin unzip iptables net-tools iproute2 procps equivs
               }
 
-              # Look for the .deb file extracted by initContainer
-              DEB_FILE=$(find /installer -name "*codesyscontrol*.deb" -o -name "*CODESYS*.deb" | head -n 1)
+              # Build + install an empty codemeter-lite shim. The
+              # codesyscontrol.deb declares `Depends: codemeter | codemeter-lite`
+              # which is unsatisfiable on plain Debian. Without this shim,
+              # `apt-get install -f -y` resolves the dependency by REMOVING
+              # the half-installed codesyscontrol package — silently. The
+              # container then comes up "Up" per podman ps but with no
+              # codesyscontrol binary present. Demo mode runs without the
+              # real CodeMeter daemon, so an empty equivs package is fine.
+              install_codemeter_shim() {
+                if dpkg-query -W -f='${Status}' codemeter-lite 2>/dev/null | grep -q "install ok installed"; then
+                  echo "codemeter-lite shim already installed."
+                  return
+                fi
+                echo "Building empty codemeter-lite shim with equivs..."
+                cat > /tmp/codemeter-lite.ctrl <<'CTRL'
+Package: codemeter-lite
+Version: 99.0-codesys-pod-shim
+Section: misc
+Priority: optional
+Architecture: all
+Maintainer: codesys-pod chart <support@embernet.ai>
+Description: Empty shim that satisfies codesyscontrol's codemeter-lite dep.
+ Demo mode does not require the CodeMeter daemon; this package only
+ exists so dpkg's dependency check passes without apt-get pulling
+ the half-installed codesyscontrol back out.
+CTRL
+                cd /tmp && equivs-build codemeter-lite.ctrl
+                dpkg -i /tmp/codemeter-lite_99.0-codesys-pod-shim_all.deb
+              }
+
+              # Locate the .deb recursively (the CODESYS Linux .package ZIP
+              # nests the deb at Delivery/linux/codesyscontrol_*_amd64.deb;
+              # a flat /installer/*.deb glob silently misses it).
+              DEB_FILE=$(find /installer -name 'codesyscontrol_*amd64.deb' -print -quit)
+              if [ -z "$DEB_FILE" ]; then
+                DEB_FILE=$(find /installer -name '*codesyscontrol*.deb' -o -name '*CODESYS*.deb' | head -n 1)
+              fi
 
               if [ -z "$DEB_FILE" ]; then
-                echo "ERROR: No .deb file found in /installer"
+                echo "ERROR: No .deb file found anywhere under /installer"
                 ls -R /installer
                 exit 1
               fi
+              echo "Found CODESYS deb: $DEB_FILE"
 
-              # Check if already installed
               if ! dpkg-query -W -f='${Status}' codesyscontrol 2>/dev/null | grep -q "install ok installed"; then
                 echo "Installing CODESYS from $DEB_FILE..."
                 install_deps
-                dpkg -i "$DEB_FILE" || apt-get install -f -y
+                install_codemeter_shim
+                # dpkg -i with the shim in place; NO `apt-get install -f -y`
+                # fallback (that's what silently removes the half-installed
+                # package when deps fail).
+                dpkg -i "$DEB_FILE"
+                # Hard assertion: the binary MUST exist post-install. If it
+                # doesn't, fail loud rather than fall through to a "running"
+                # container that has no codesyscontrol.
+                test -x /opt/codesys/bin/codesyscontrol.bin || {
+                  echo "ERROR: dpkg reported success but /opt/codesys/bin/codesyscontrol.bin is not executable" >&2
+                  exit 1
+                }
                 echo "Installation complete."
               else
                 echo "CODESYS already installed."
@@ -94,11 +140,23 @@ spec:
               mkdir -p /var/opt/codesys
 
               echo "Starting CODESYS Control..."
-              # The binary location usually is /opt/codesys/bin/codesyscontrol.bin
-              if [ -f "/opt/codesys/bin/codesyscontrol.bin" ]; then
-                 /opt/codesys/bin/codesyscontrol.bin -d /etc/CODESYSControl.cfg
+              # Invocation matches the .deb's own /etc/init.d/codesyscontrol
+              # (line 65 of the deb-shipped init script):
+              #   cd /var/opt/codesys && /opt/codesys/bin/codesyscontrol.bin /etc/codesyscontrol/CODESYSControl.cfg
+              # The prior invocation `/etc/CODESYSControl.cfg` was a stale
+              # pre-3.5.16 path; the deb has installed CODESYSControl.cfg
+              # under /etc/codesyscontrol/ for years. With the wrong path
+              # the runtime falls back to internal defaults, skips loading
+              # CmpRetain, and CmpApp enters safe mode on the
+              # RetainUpdate import. There is no `-d` daemonize flag on
+              # codesyscontrol.bin — the deb's init script runs it in
+              # foreground (the SysV script just backgrounds it via `&`),
+              # which is exactly what we want for container PID 1.
+              if [ -x /opt/codesys/bin/codesyscontrol.bin ]; then
+                 cd /var/opt/codesys
+                 exec /opt/codesys/bin/codesyscontrol.bin /etc/codesyscontrol/CODESYSControl.cfg
               else
-                 echo "Binary not found, searching..."
+                 echo "Binary not found, searching..." >&2
                  find /opt -name "codesyscontrol.bin"
                  exit 1
               fi
