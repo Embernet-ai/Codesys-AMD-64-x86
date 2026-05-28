@@ -85,18 +85,24 @@ spec:
                   return
                 fi
                 echo "Building empty codemeter-lite shim with equivs..."
-                cat > /tmp/codemeter-lite.ctrl <<'CTRL'
-Package: codemeter-lite
-Version: 99.0-codesys-pod-shim
-Section: misc
-Priority: optional
-Architecture: all
-Maintainer: codesys-pod chart <support@embernet.ai>
-Description: Empty shim that satisfies codesyscontrol's codemeter-lite dep.
- Demo mode does not require the CodeMeter daemon; this package only
- exists so dpkg's dependency check passes without apt-get pulling
- the half-installed codesyscontrol back out.
-CTRL
+                # Build the equivs control file via printf rather than a
+                # heredoc — a heredoc with content at column 0 breaks
+                # this YAML's `|` block scalar (helm lint: "unable to
+                # parse YAML: ... could not find expected ':'"). printf
+                # keeps every line of the YAML block at its proper
+                # indent.
+                printf '%s\n' \
+                  'Package: codemeter-lite' \
+                  'Version: 99.0-codesys-pod-shim' \
+                  'Section: misc' \
+                  'Priority: optional' \
+                  'Architecture: all' \
+                  'Maintainer: codesys-pod chart <support@embernet.ai>' \
+                  'Description: Empty shim that satisfies codesyscontrols codemeter-lite dep.' \
+                  ' Demo mode does not require the CodeMeter daemon; this package only' \
+                  ' exists so dpkg dependency check passes without apt-get pulling' \
+                  ' the half-installed codesyscontrol back out.' \
+                  > /tmp/codemeter-lite.ctrl
                 cd /tmp && equivs-build codemeter-lite.ctrl
                 dpkg -i /tmp/codemeter-lite_99.0-codesys-pod-shim_all.deb
               }

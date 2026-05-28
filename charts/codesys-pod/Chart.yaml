@@ -2,7 +2,7 @@ apiVersion: v2
 name: codesys-pod
 description: CODESYS Control SL Runtime for Linux x86/AMD64 — IEC 61131-3 PLC (Installer Pattern)
 type: application
-version: 1.2.2
+version: 1.2.3
 appVersion: "4.20.0.0"
 keywords:
   - codesys
