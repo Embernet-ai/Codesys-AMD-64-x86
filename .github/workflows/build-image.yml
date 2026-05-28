@@ -1,0 +1,111 @@
+name: Build & Publish Container Image
+
+# Builds ghcr.io/embernet-ai/codesys-sl:<version> from the Dockerfile in
+# the repo root. Triggers on:
+#   - push to main (when Dockerfile/workflow/chart changes) → publishes :main + :sha-<short>
+#   - version tags (v*.*.*)                                  → publishes :<version> + :latest
+#   - workflow_dispatch                                      → manual rebuild
+#
+# Replaces the chart's install-at-pod-start pattern: with this image
+# baked, pod starts go from ~90s (download + unzip + dpkg + deps) to ~3s
+# (image pull + exec).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Dockerfile'
+      - '.github/workflows/build-image.yml'
+      - 'charts/codesys-pod/Chart.yaml'
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Dockerfile'
+      - '.github/workflows/build-image.yml'
+  workflow_dispatch:
+    inputs:
+      codesys_package_url:
+        description: 'Override URL for the CODESYS .package (defaults to v4.20.0.0)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: embernet-ai/codesys-sl
+  DEFAULT_PACKAGE_URL: https://github.com/Embernet-ai/codesys-linux-x86/releases/download/v4.20.0.0/CODESYS.Control.for.Linux.SL.4.20.0.0.package
+  DEFAULT_CODESYS_VERSION: 4.20.0.0
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve CODESYS package URL + version
+        id: resolve
+        run: |
+          set -euo pipefail
+          URL="${{ github.event.inputs.codesys_package_url }}"
+          if [ -z "$URL" ]; then URL="${{ env.DEFAULT_PACKAGE_URL }}"; fi
+          # Derive version from URL path: .../v4.20.0.0/...
+          VERSION=$(echo "$URL" | sed -n 's|.*/v\([0-9.]\+\)/.*|\1|p')
+          if [ -z "$VERSION" ]; then VERSION="${{ env.DEFAULT_CODESYS_VERSION }}"; fi
+          echo "url=$URL"         >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved: version=$VERSION url=$URL"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ steps.resolve.outputs.version }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
+            type=ref,event=branch
+            type=sha,prefix=sha-
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            CODESYS_PACKAGE_URL=${{ steps.resolve.outputs.url }}
+            CODESYS_VERSION=${{ steps.resolve.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Image"
+            echo ""
+            echo "- **Version:** ${{ steps.resolve.outputs.version }}"
+            echo "- **Source .package:** ${{ steps.resolve.outputs.url }}"
+            echo "- **Tags:**"
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
