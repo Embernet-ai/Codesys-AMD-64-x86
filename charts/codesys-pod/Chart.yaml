@@ -2,7 +2,7 @@ apiVersion: v2
 name: codesys-pod
 description: CODESYS Control SL Runtime for Linux x86/AMD64 — IEC 61131-3 PLC (Installer Pattern)
 type: application
-version: 1.2.3
+version: 1.2.4
 appVersion: "4.20.0.0"
 keywords:
   - codesys
@@ -15,7 +15,7 @@ keywords:
   - opc-ua
   - webvisu
 home: https://github.com/Embernet-ai/Codesys-AMD-64-x86
-icon: https://raw.githubusercontent.com/Embernet-ai/Codesys-AMD-64-x86/main/icon.png
+icon: https://avatars.githubusercontent.com/u/88027827?v=4
 maintainers:
   - name: Embernet-ai
     email: support@embernet.ai
