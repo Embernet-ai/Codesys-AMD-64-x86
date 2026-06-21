@@ -144,6 +144,42 @@ entries:
       catalog.cattle.io/upstream-version: 4.20.0.0
     apiVersion: v2
     appVersion: 4.20.0.0
+    created: "2026-06-21T19:18:03.629602615Z"
+    description: CODESYS Control SL Runtime for Linux x86/AMD64 — IEC 61131-3 PLC
+      (Installer Pattern)
+    digest: d448e6926a1b5d150eaf1dea8b034ca1997a84f54aedf58a73793892642c213d
+    home: https://github.com/Embernet-ai/Codesys-AMD-64-x86
+    icon: https://avatars.githubusercontent.com/u/88027827?v=4
+    keywords:
+    - codesys
+    - plc
+    - industrial
+    - amd64
+    - x86
+    - iiot
+    - iec-61131
+    - opc-ua
+    - webvisu
+    maintainers:
+    - email: support@embernet.ai
+      name: Embernet-ai
+    name: codesys-pod
+    type: application
+    urls:
+    - https://embernet-ai.github.io/Codesys-AMD-64-x86/codesys-pod-1.2.4.tgz
+    version: 1.2.4
+  - annotations:
+      catalog.cattle.io/arch: amd64
+      catalog.cattle.io/certified: partner
+      catalog.cattle.io/display-name: CODESYS Control SL (AMD64)
+      catalog.cattle.io/kube-version: '>=1.19.0-0'
+      catalog.cattle.io/namespace: industrial
+      catalog.cattle.io/os: linux
+      catalog.cattle.io/rancher-version: '>=2.5.0-0'
+      catalog.cattle.io/release-name: codesys-pod
+      catalog.cattle.io/upstream-version: 4.20.0.0
+    apiVersion: v2
+    appVersion: 4.20.0.0
     created: "2026-05-28T21:47:12.833011471Z"
     description: CODESYS Control SL Runtime for Linux x86/AMD64 — IEC 61131-3 PLC
       (Installer Pattern)
@@ -204,4 +240,4 @@ entries:
     urls:
     - https://embernet-ai.github.io/Codesys-AMD-64-x86/codesys-pod-1.2.0.tgz
     version: 1.2.0
-generated: "2026-05-28T21:47:12.832155284Z"
+generated: "2026-06-21T19:18:03.628882711Z"
