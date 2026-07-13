@@ -5,9 +5,22 @@ metadata:
   labels:
     {{- include "codesys-pod.labels" . | nindent 4 }}
     {{- include "codesys-pod.storeLabels" . | nindent 4 }}
+  annotations:
+    # Flux/Ziti mesh exposure (WebVisu) so the dashboard can dial it.
+    flux.embernet.ai/expose: "true"
+    flux.embernet.ai/service-name: {{ include "codesys-pod.fullname" . | quote }}
+    flux.embernet.ai/port: {{ .Values.service.ports.webvisu | quote }}
+    flux.embernet.ai/role-attributes: "gui-services"
 spec:
   type: {{ .Values.service.type | default "ClusterIP" }}
   ports:
+    # CODESYS Control for Linux SL runtime comms port — this is what the CODESYS
+    # IDE actually connects to (device download). The runtime does NOT ship a
+    # gateway, so :1217 below never binds; 11740 is the real IDE/device port.
+    - port: {{ .Values.service.ports.runtime | default 11740 }}
+      targetPort: {{ .Values.service.ports.runtime | default 11740 }}
+      protocol: TCP
+      name: runtime
     - port: {{ .Values.service.ports.gateway }}
       targetPort: gateway
       protocol: TCP

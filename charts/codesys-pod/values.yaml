@@ -14,7 +14,10 @@ image:
 # ==================== CODESYS Installer ====================
 # The URL for the CODESYS package to download and install.
 # Provided: AMD64/x86 64-bit SL package
-installerUrl: "https://github.com/Embernet-ai/Codesys-AMD-64-x86/releases/download/v4.20.0.0/CODESYS.Control.for.Linux.SL.4.20.0.0.package"
+# NOTE: v4.20.0.0 is NOT published on this repo's releases (404 -> 9-byte "Not
+# Found" -> unzip short read -> runtime CrashLoop). The published asset is
+# v4.18.0.0. Bump both this URL and Chart.appVersion together when v4.20 ships.
+installerUrl: "https://github.com/Embernet-ai/Codesys-AMD-64-x86/releases/download/v4.18.0.0/CODESYS.Control.for.Linux.SL.4.18.0.0.package"
 
 # ==================== Image Pull Secrets ====================
 imagePullSecrets: []
@@ -37,7 +40,8 @@ service:
   type: ClusterIP
   port: 8080
   ports:
-    gateway: 1217
+    runtime: 11740      # CODESYS Control SL runtime/device port — the IDE connects here
+    gateway: 1217       # (no gateway ships in the runtime package; kept for compat, never binds)
     opcua: 4840
     webvisu: 8080
 
