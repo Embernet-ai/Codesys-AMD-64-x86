@@ -45,14 +45,13 @@ jobs:
         run: |
           mkdir -p .deploy
           helm package charts/codesys-pod -d .deploy
-          # Fetch existing index from live site and merge (preserves old versions)
-          curl -sSL https://embernet-ai.github.io/Codesys-AMD-64-x86/index.yaml -o .deploy/existing-index.yaml || true
-          if [ -f .deploy/existing-index.yaml ]; then
-            helm repo index .deploy --url https://embernet-ai.github.io/Codesys-AMD-64-x86/ --merge .deploy/existing-index.yaml
-          else
-            helm repo index .deploy --url https://embernet-ai.github.io/Codesys-AMD-64-x86/
-          fi
-          rm -f .deploy/existing-index.yaml
+          # Current-version-only index: do NOT merge the live index. Merging
+          # carried forward (a) stale codesys-pod versions and (b) the dead
+          # codesys-control-sl 1.0.x entries whose tarballs 404 — the chart was
+          # renamed in place, so --merge kept resurrecting the old name forever.
+          # Prior chart versions predate the App Store contract and must not be
+          # resolvable. Rebuild index.yaml from .deploy alone (just this build).
+          helm repo index .deploy --url https://embernet-ai.github.io/Codesys-AMD-64-x86/
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
