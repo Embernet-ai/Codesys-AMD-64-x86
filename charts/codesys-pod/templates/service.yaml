@@ -1,16 +1,32 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "codesys-pod.fullname" . }}
+  # MUST be exactly .Release.Name: the dashboard builds the launch FQDN from the
+  # Service object name (services.go:98) while the node-card path builds it from
+  # the pod's app.kubernetes.io/instance label (= .Release.Name). If they differ
+  # the node card 502s. `fullname` appended "-codesys-pod", so `ut3-codesys`
+  # rendered Service `ut3-codesys-codesys-pod` — the break that stopped a second
+  # instance from being reachable. See App Store chart spec §4.
+  name: {{ .Release.Name }}
   labels:
     {{- include "codesys-pod.labels" . | nindent 4 }}
     {{- include "codesys-pod.storeLabels" . | nindent 4 }}
+    # app label must match the registered Flux service name for cross-site launch
+    # (client.go:421-425); without it a remote-site pod falls back to a
+    # cluster-local FQDN that will not resolve. Spec §7.
+    app: {{ .Release.Name | quote }}
+    {{- with .Values.tenantLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
   annotations:
     # Flux/Ziti mesh exposure (WebVisu) so the dashboard can dial it.
     flux.embernet.ai/expose: "true"
-    flux.embernet.ai/service-name: {{ include "codesys-pod.fullname" . | quote }}
+    flux.embernet.ai/service-name: {{ .Release.Name | quote }}
     flux.embernet.ai/port: {{ .Values.service.ports.webvisu | quote }}
     flux.embernet.ai/role-attributes: "gui-services"
+    {{- with .Values.embernet }}{{- if .displayName }}
+    embernet.ai/display-name: {{ .displayName | quote }}
+    {{- end }}{{- end }}
 spec:
   type: {{ .Values.service.type | default "ClusterIP" }}
   ports:

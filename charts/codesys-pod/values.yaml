@@ -5,6 +5,16 @@
 # Fireball Industries — https://embernet.ai
 # =============================================================================
 
+# ==================== Dashboard-injected values ====================
+# The dashboard's App Store deploy path stamps these in. The chart is
+# responsible for rendering them onto BOTH the pod template and the Service.
+# tenantLabels carries embernet.ai/tenant — without it on the Service the app
+# is invisible to every tenant-scoped view (visible to SuperAdmin only). See
+# App Store chart spec §2. Safe to leave empty for a manual local install.
+embernet:
+  displayName: ""       # -> embernet.ai/display-name annotation
+tenantLabels: {}        # -> e.g. { embernet.ai/tenant: acme, embernet.ai/deployed-by: user }
+
 # ==================== Container Image ====================
 image:
   repository: debian
@@ -72,7 +82,16 @@ persistence:
 
 # ==================== Network ====================
 network:
-  hostNetwork: true
+  # Default OFF so multiple CODESYS instances can run on ONE edge node.
+  # hostNetwork+hostPort binds the node's real 4840/8080/11740/1217 — a second
+  # instance on the same node then fails to schedule on the port conflict, which
+  # is what actually blocked multi-instance (independent of the Service-naming
+  # bug). With hostNetwork off each instance gets its own pod IP + ClusterIP,
+  # and the reconciler exposes that ClusterIP over the Flux mesh (host config
+  # already targets the ClusterIP, not the node IP). Ignition reaches OPC-UA at
+  # <release>.<ns>.svc.cluster.local:4840. Set true ONLY for a single-instance
+  # node that needs raw host-IP access and accept it cannot be scaled per node.
+  hostNetwork: false
   extraPorts: []
 
 # ==================== Security Context ====================

@@ -19,10 +19,18 @@ spec:
       labels:
         {{- include "codesys-pod.selectorLabels" . | nindent 8 }}
         {{- include "codesys-pod.storeLabels" . | nindent 8 }}
-      {{- if .Values.sidecarProxy.enabled }}
+        # app label = registered Flux service name (spec §7 cross-site launch)
+        app: {{ .Release.Name | quote }}
+        {{- with .Values.tenantLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       annotations:
+        {{- if .Values.sidecarProxy.enabled }}
         checksum/sidecar-proxy: {{ include (print $.Template.BasePath "/configmap-sidecar-proxy.yaml") . | sha256sum }}
-      {{- end }}
+        {{- end }}
+        {{- with .Values.embernet }}{{- if .displayName }}
+        embernet.ai/display-name: {{ .displayName | quote }}
+        {{- end }}{{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
