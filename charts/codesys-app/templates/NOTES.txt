@@ -22,7 +22,7 @@
   Host Networking:  DISABLED
   DNS Policy:       ClusterFirst
   Access via Service:
-    kubectl port-forward svc/{{ include "codesys-pod.fullname" . }} {{ .Values.service.ports.webvisu }}:{{ .Values.service.ports.webvisu }}
+    kubectl port-forward svc/{{ include "codesys-app.fullname" . }} {{ .Values.service.ports.webvisu }}:{{ .Values.service.ports.webvisu }}
 {{- end }}
 
 {{- if .Values.sidecarProxy.enabled }}
@@ -34,7 +34,7 @@
   Industrial Dashboard Labels:
     embernet.ai/store-app: "true"
     embernet.ai/gui-type:  "{{ .Values.gui.type }}"
-    embernet.ai/app-name:  "{{ include "codesys-pod.name" . }}"
+    embernet.ai/app-name:  "{{ include "codesys-app.name" . }}"
     embernet.ai/gui-port:  "{{- if and .Values.sidecarProxy .Values.sidecarProxy.enabled }}{{ .Values.sidecarProxy.listenPort }}{{- else }}{{ .Values.gui.port | default .Values.service.port }}{{- end }}"
 
 ===============================================================================

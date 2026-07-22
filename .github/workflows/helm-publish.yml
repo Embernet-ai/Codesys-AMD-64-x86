@@ -20,7 +20,7 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v4
       - name: Lint chart
-        run: helm lint charts/codesys-pod
+        run: helm lint charts/codesys-app
 
   publish:
     needs: lint
@@ -44,7 +44,7 @@ jobs:
       - name: Package chart
         run: |
           mkdir -p .deploy
-          helm package charts/codesys-pod -d .deploy
+          helm package charts/codesys-app -d .deploy
           # Current-version-only index: do NOT merge the live index. Merging
           # carried forward (a) stale codesys-pod versions and (b) the dead
           # codesys-control-sl 1.0.x entries whose tarballs 404 — the chart was

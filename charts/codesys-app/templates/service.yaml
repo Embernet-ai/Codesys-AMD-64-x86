@@ -9,8 +9,8 @@ metadata:
   # instance from being reachable. See App Store chart spec §4.
   name: {{ .Release.Name }}
   labels:
-    {{- include "codesys-pod.labels" . | nindent 4 }}
-    {{- include "codesys-pod.storeLabels" . | nindent 4 }}
+    {{- include "codesys-app.labels" . | nindent 4 }}
+    {{- include "codesys-app.storeLabels" . | nindent 4 }}
     # app label must match the registered Flux service name for cross-site launch
     # (client.go:421-425); without it a remote-site pod falls back to a
     # cluster-local FQDN that will not resolve. Spec §7.
@@ -56,4 +56,4 @@ spec:
       name: proxy-http
     {{- end }}
   selector:
-    {{- include "codesys-pod.selectorLabels" . | nindent 4 }}
+    {{- include "codesys-app.selectorLabels" . | nindent 4 }}

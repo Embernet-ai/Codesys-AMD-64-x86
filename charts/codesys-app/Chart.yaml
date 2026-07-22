@@ -1,8 +1,8 @@
 apiVersion: v2
-name: codesys-pod
+name: codesys-app
 description: CODESYS Control SL Runtime for Linux x86/AMD64 — IEC 61131-3 PLC (Installer Pattern)
 type: application
-version: 1.2.6
+version: 1.3.0
 appVersion: "4.20.0.0"
 keywords:
   - codesys
@@ -24,7 +24,7 @@ annotations:
   catalog.cattle.io/os: linux
   catalog.cattle.io/arch: amd64
   catalog.cattle.io/certified: partner
-  catalog.cattle.io/release-name: codesys-pod
+  catalog.cattle.io/release-name: codesys-app
   catalog.cattle.io/namespace: industrial
   catalog.cattle.io/kube-version: ">=1.19.0-0"
   catalog.cattle.io/rancher-version: ">=2.5.0-0"
