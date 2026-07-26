@@ -16,18 +16,19 @@ embernet:
 tenantLabels: {}        # -> e.g. { embernet.ai/tenant: acme, embernet.ai/deployed-by: user }
 
 # ==================== Container Image ====================
+# Prebuilt image baked by .github/workflows/build-image.yml -> ghcr.io/
+# embernet-ai/codesys-sl. The CODESYS Control SL .deb (+ codemeter-lite shim)
+# is installed at BUILD time, so there is no download/unzip/dpkg at pod start
+# (~90s -> ~3s). A seed initContainer copies the image's baked /var/opt/codesys
+# into the persistence PVC on first run (see deployment.yaml).
+#
+# NOTE: this moves the runtime from 4.18 (the only asset published on THIS
+# repo) to 4.20 — the image pipeline builds from codesys-linux-x86, which does
+# publish v4.20.0.0. tag defaults to Chart.appVersion.
 image:
-  repository: debian
+  repository: ghcr.io/embernet-ai/codesys-sl
   pullPolicy: IfNotPresent
-  tag: "bullseye"
-
-# ==================== CODESYS Installer ====================
-# The URL for the CODESYS package to download and install.
-# Provided: AMD64/x86 64-bit SL package
-# NOTE: v4.20.0.0 is NOT published on this repo's releases (404 -> 9-byte "Not
-# Found" -> unzip short read -> runtime CrashLoop). The published asset is
-# v4.18.0.0. Bump both this URL and Chart.appVersion together when v4.20 ships.
-installerUrl: "https://github.com/Embernet-ai/Codesys-AMD-64-x86/releases/download/v4.18.0.0/CODESYS.Control.for.Linux.SL.4.18.0.0.package"
+  tag: "4.20.0.0"
 
 # ==================== Image Pull Secrets ====================
 imagePullSecrets: []

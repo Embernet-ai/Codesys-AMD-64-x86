@@ -1,8 +1,8 @@
 apiVersion: v2
 name: codesys-app
-description: CODESYS Control SL Runtime for Linux x86/AMD64 — IEC 61131-3 PLC (Installer Pattern)
+description: CODESYS Control SL Runtime for Linux x86/AMD64 — IEC 61131-3 PLC (prebuilt image)
 type: application
-version: 1.3.0
+version: 1.4.0
 appVersion: "4.20.0.0"
 keywords:
   - codesys
