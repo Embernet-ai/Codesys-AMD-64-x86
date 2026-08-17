@@ -97,8 +97,23 @@ network:
 
 # ==================== Security Context ====================
 securityContext:
-  # CODESYS requires privileged access for hardware and networking
+  # CODESYS requires privileged access for hardware and networking, and unlike
+  # most claims of that shape this one is measurable. On the live ut3-codesys
+  # pod: CapEff is 000001ffffffffff — the FULL capability set — and the
+  # container sees the host's entire /dev (dri, drm_dp_aux0, bsg, cpu,
+  # dma_heap, autofs...). A runtime that drives fieldbus hardware needs device
+  # nodes, and no capability list grants /dev access.
+  #
+  # templates/app/README.md prefers explicit capabilities over privileged, and
+  # that preference is right for workloads whose need is purely network-level.
+  # It is wrong here: swapping this for NET_ADMIN/NET_RAW/NET_BIND_SERVICE
+  # would cut the hardware path while looking like a tightening.
+  #
+  # app-invariants: allow-privileged — PLC runtime needs host device nodes,
+  # which no capability list can grant.
   privileged: true
+  # Redundant while privileged is true, which already implies it. Kept explicit
+  # so that dropping privileged later does not silently change this too.
   allowPrivilegeEscalation: true
 
 # ==================== Sidecar Proxy ====================
