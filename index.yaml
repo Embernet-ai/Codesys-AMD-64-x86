@@ -12,11 +12,11 @@ entries:
       catalog.cattle.io/release-name: codesys-app
       catalog.cattle.io/upstream-version: 4.20.0.0
     apiVersion: v2
-    appVersion: 4.20.0.0
-    created: "2026-07-26T05:38:31.788546344Z"
+    appVersion: 4.22.0.0
+    created: "2026-08-27T06:28:59.773088582Z"
     description: CODESYS Control SL Runtime for Linux x86/AMD64 — IEC 61131-3 PLC
       (prebuilt image)
-    digest: aed2ac0ccf249d84c4caf1c1f788799ca032411b902bb7eff991315786b67e26
+    digest: 32b22754e79f0b39fe0e8f772902d5aabbecad97e21248281f8ab5997db86a65
     home: https://github.com/Embernet-ai/Codesys-AMD-64-x86
     icon: https://avatars.githubusercontent.com/u/88027827?v=4
     keywords:
@@ -35,6 +35,6 @@ entries:
     name: codesys-app
     type: application
     urls:
-    - https://embernet-ai.github.io/Codesys-AMD-64-x86/codesys-app-1.4.0.tgz
-    version: 1.4.0
-generated: "2026-07-26T05:38:31.787899792Z"
+    - https://embernet-ai.github.io/Codesys-AMD-64-x86/codesys-app-1.5.0.tgz
+    version: 1.5.0
+generated: "2026-08-27T06:28:59.772327888Z"
