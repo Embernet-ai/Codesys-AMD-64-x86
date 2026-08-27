@@ -16,19 +16,29 @@ embernet:
 tenantLabels: {}        # -> e.g. { embernet.ai/tenant: acme, embernet.ai/deployed-by: user }
 
 # ==================== Container Image ====================
-# Prebuilt image baked by .github/workflows/build-image.yml -> ghcr.io/
-# embernet-ai/codesys-sl. The CODESYS Control SL .deb (+ codemeter-lite shim)
-# is installed at BUILD time, so there is no download/unzip/dpkg at pod start
-# (~90s -> ~3s). A seed initContainer copies the image's baked /var/opt/codesys
-# into the persistence PVC on first run (see deployment.yaml).
+# Prebuilt image: the CODESYS Control SL .deb (+ dependency shims) is installed
+# at BUILD time, so there is no download/unzip/dpkg at pod start (~90s -> ~3s).
+# A seed initContainer copies the image's baked /var/opt/codesys into the
+# persistence PVC on first run (see deployment.yaml).
 #
-# NOTE: this moves the runtime from 4.18 (the only asset published on THIS
-# repo) to 4.20 — the image pipeline builds from codesys-linux-x86, which does
-# publish v4.20.0.0. tag defaults to Chart.appVersion.
+# NOW BUILT BY Embernet-ai/codesys-packages, not this repo's build-image.yml.
+# That workflow fetches the .package with an unauthenticated curl, which only
+# works against a public release — the 4.22.0.0 assets are on codesys-packages,
+# which is private, so it 404s. (Its default URL also still points at
+# codesys-linux-x86, a repo that no longer exists.) A workflow running inside
+# codesys-packages reads its own private release with the built-in
+# GITHUB_TOKEN, so that is where the image is produced.
+#
+# 4.22 is not a drop-in rebuild of 4.20: its .deb adds `Depends: systemd
+# (>= 240)` and ships a systemd unit in place of /etc/init.d/codesyscontrol.
+# See codesys-packages' Dockerfile + entrypoint.sh for how that is handled.
+#
+# tag is pinned rather than left to Chart.appVersion so a chart-only version
+# bump can never silently move the runtime.
 image:
-  repository: ghcr.io/embernet-ai/codesys-sl
+  repository: ghcr.io/embernet-ai/codesys-control-sl
   pullPolicy: IfNotPresent
-  tag: "4.20.0.0"
+  tag: "4.22.0.0"
 
 # ==================== Image Pull Secrets ====================
 imagePullSecrets: []

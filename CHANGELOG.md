@@ -4,6 +4,33 @@ All notable changes to the CODESYS Control SL (AMD64/x86) Helm chart.
 
 ---
 
+## [1.5.0] — 2026-08-27
+
+### Changed
+- **Default runtime 4.20.0.0 → 4.22.0.0**, and the default image moves from
+  `ghcr.io/embernet-ai/codesys-sl` to
+  **`ghcr.io/embernet-ai/codesys-control-sl`**.
+- The image is now built by **`Embernet-ai/codesys-packages`**, not by this
+  repo's `build-image.yml`. That workflow fetches the `.package` with an
+  unauthenticated `curl`, which only works against a *public* release; the
+  4.22.0.0 assets live on `codesys-packages`, which is private, so it 404s.
+  Its default URL also still points at `codesys-linux-x86`, a repo that no
+  longer exists. A workflow running *inside* `codesys-packages` reads its own
+  private release with the built-in `GITHUB_TOKEN`, needing no PAT and no
+  repository visibility change.
+- `image.tag` is now pinned explicitly instead of falling back to
+  `Chart.appVersion`, so a chart-only version bump cannot silently move the
+  PLC runtime.
+
+### Notes
+- 4.22 is **not** a drop-in rebuild of 4.20. Its `.deb` adds
+  `Depends: systemd (>= 240)` and ships
+  `/etc/systemd/system/codesyscontrol.service` in place of
+  `/etc/init.d/codesyscontrol`. `ExecStart` is unchanged, but the unit adds an
+  `ExecStartPre` hook, `User=codesyscontrol`, and an `LD_LIBRARY_PATH`. See
+  `codesys-packages`' Dockerfile and `entrypoint.sh`.
+- Verified running on `ut3-cp-em-0001` (tenant `tranetech-ut3`) before release.
+
 ## [1.2.0] — 2026-04-16
 
 ### Changed
