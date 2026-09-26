@@ -1,2 +1,25 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Force LF in the WORKING TREE, not just in the repository.
+#
+# `* text=auto` on its own normalizes to LF on commit but checks out the
+# platform's native endings, so on Windows with core.autocrlf=true the working
+# tree gets CRLF. The repo stays clean and the problem is invisible in a diff,
+# but anything packaged from that checkout ships CRLF.
+#
+# That is not cosmetic for this repo. charts/codesys-app renders a container
+# `command` that is executed by /bin/sh. A carriage return on an executable
+# line makes the shell read `set -e\r` and `CFG=...cfg\r`, so the config path
+# picks up a trailing CR, the guarded greps miss, the runtime starts without
+# its boot application registered, and the tester serves nothing while logging
+# almost nothing. Measured 2026-09-26: a chart tarred from a Windows checkout
+# carried CRLF on 248 lines of templates/deployment.yaml.
+#
+# eol=lf makes the checkout LF everywhere, so packaging is safe from any host.
+*.yaml  text eol=lf
+*.yml   text eol=lf
+*.tpl   text eol=lf
+*.txt   text eol=lf
+*.sh    text eol=lf
+*.json  text eol=lf
