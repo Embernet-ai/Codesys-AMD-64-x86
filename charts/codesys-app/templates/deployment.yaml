@@ -74,10 +74,52 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if or .Values.runtimeConfig.registerBootApplication .Values.runtimeConfig.disableUserMgmtEnforce }}
+          # Runtime config bootstrap.
+          #
+          # /etc/codesyscontrol/ lives in the IMAGE, not on the PVC, and an
+          # unlicensed runtime restarts roughly every two hours, so anything
+          # edited inside a running container is gone by the next cycle. The
+          # edits have to be re-applied at every start, which is why this is a
+          # command rather than an init container writing a file once.
+          #
+          # This existed on the Trane stations only as a hand-applied
+          # `kubectl patch`, two Deployment revisions ahead of the Helm
+          # release. That is drift with teeth: the next `helm upgrade` reverts
+          # the Deployment to the chart, both lines disappear, and the tester
+          # goes dark in a way that logs almost nothing. Owning it here is what
+          # docs/deploy/trane-ut3-cp02/PLC-RUNTIME-BOOT-APPLICATION.md asked
+          # for and never got.
+          #
+          # Both edits are guarded by grep, so restarts and re-applies are safe.
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              CFG=/etc/codesyscontrol/CODESYSControl_User.cfg
+              {{- if .Values.runtimeConfig.registerBootApplication }}
+              # A boot application copied into PlcLogic/Application/ is NEVER
+              # loaded unless it is listed here. A download from the IDE
+              # registers it; a file copy does not, and the runtime then starts
+              # with no application and says nothing about a bootproject.
+              grep -q '^Application.1=' "$CFG" || sed -i '/^\[CmpApp\]/a Application.1=Application' "$CFG"
+              {{- end }}
+              {{- if .Values.runtimeConfig.disableUserMgmtEnforce }}
+              # The station image ships UserLogin_AuthenticationType=ONLY_ASYMMETRIC
+              # with an EMPTY user database. The OPC UA server then advertises a
+              # single anonymous endpoint and answers ActivateSession with
+              # BadUserAccessDenied, so no client can ever read the tester.
+              grep -q '^SECURITY.UserMgmtEnforce=' "$CFG" || sed -i '/^\[CmpUserMgr\]/a SECURITY.UserMgmtEnforce=NO' "$CFG"
+              {{- end }}
+              cd /var/opt/codesys
+              exec /opt/codesys/bin/codesyscontrol.bin /etc/codesyscontrol/CODESYSControl.cfg
+          {{- else }}
           # No command: the image ENTRYPOINT runs the runtime verbatim from the
           # .deb's own init script:
           #   cd /var/opt/codesys
           #   /opt/codesys/bin/codesyscontrol.bin /etc/codesyscontrol/CODESYSControl.cfg
+          {{- end }}
           ports:
             - name: runtime
               containerPort: {{ .Values.service.ports.runtime }}

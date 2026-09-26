@@ -162,6 +162,37 @@ sidecarProxy:
       drop:
         - ALL
 
+# ==================== Runtime Config Bootstrap ====================
+# Edits applied to /etc/codesyscontrol/CODESYSControl_User.cfg at every
+# container start. That file is in the IMAGE, not on the PVC, and an unlicensed
+# runtime restarts about every two hours, so an edit made inside a running
+# container does not survive the next cycle.
+#
+# BOTH DEFAULT OFF, deliberately, because neither is right for every station:
+#
+#   registerBootApplication  Only needed when the boot application is PUT there
+#                            by a file copy, which is how the Trane stations get
+#                            a release from S3. A download from the CODESYS IDE
+#                            registers the application itself, so a station that
+#                            is always loaded from the IDE does not want this.
+#
+#   disableUserMgmtEnforce   This turns OFF device user management enforcement.
+#                            It is the difference between an Ignition gateway
+#                            being able to read the tester and every OPC UA
+#                            session being refused with BadUserAccessDenied, but
+#                            it is a security control being switched off, so it
+#                            is opt in per station and belongs only on a plant
+#                            network. The alternative is granting the implicit
+#                            Anonymous_OPCUAServer group its rights from the IDE.
+#
+# On the Trane stations both must be true. They were applied there by hand with
+# kubectl patch and were never in the chart, which left the live Deployment two
+# revisions ahead of the Helm release and one upgrade away from going dark. See
+# UT3-Code docs/deploy/trane-ut3-cp02/PLC-RUNTIME-BOOT-APPLICATION.md.
+runtimeConfig:
+  registerBootApplication: false
+  disableUserMgmtEnforce: false
+
 # ==================== Environment Variables ====================
 env: []
 
