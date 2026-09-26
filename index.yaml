@@ -1,5 +1,42 @@
 apiVersion: v1
 entries:
+  codesys-app:
+  - annotations:
+      catalog.cattle.io/arch: amd64
+      catalog.cattle.io/certified: partner
+      catalog.cattle.io/display-name: CODESYS Control SL (AMD64)
+      catalog.cattle.io/kube-version: '>=1.19.0-0'
+      catalog.cattle.io/namespace: industrial
+      catalog.cattle.io/os: linux
+      catalog.cattle.io/rancher-version: '>=2.5.0-0'
+      catalog.cattle.io/release-name: codesys-app
+      catalog.cattle.io/upstream-version: 4.20.0.0
+    apiVersion: v2
+    appVersion: 4.22.0.0
+    created: "2026-09-26T14:22:35.33790776Z"
+    description: CODESYS Control SL Runtime for Linux x86/AMD64 — IEC 61131-3 PLC
+      (prebuilt image)
+    digest: 94622e76ea994fbc081f61a43f88a585ce742f65a987da14bf2dbea651d04e96
+    home: https://github.com/Embernet-ai/Codesys-AMD-64-x86
+    icon: https://avatars.githubusercontent.com/u/88027827?v=4
+    keywords:
+    - codesys
+    - plc
+    - industrial
+    - amd64
+    - x86
+    - iiot
+    - iec-61131
+    - opc-ua
+    - webvisu
+    maintainers:
+    - email: support@embernet.ai
+      name: Embernet-ai
+    name: codesys-app
+    type: application
+    urls:
+    - https://embernet-ai.github.io/Codesys-AMD-64-x86/codesys-app-1.6.0.tgz
+    version: 1.6.0
   codesys-control-for-linux-sl:
   - annotations:
       catalog.cattle.io/arch: amd64,arm64
@@ -13,9 +50,9 @@ entries:
       catalog.cattle.io/upstream-version: 4.20.0.0
     apiVersion: v2
     appVersion: 4.22.0.0
-    created: "2026-09-26T12:52:57.471616812Z"
+    created: "2026-09-26T14:22:35.33867604Z"
     description: CODESYS Control for Linux SL, the IEC 61131-3 PLC runtime
-    digest: ebab78bd49691bc429731f7580ce0b9a6ef899ed0c0333ffdb741a0772e866ee
+    digest: 0387b21320784c7a7849c67d4a3a215b84b37f95f586feab4df2a6c40398ea36
     home: https://github.com/Embernet-ai/Codesys-AMD-64-x86
     icon: https://avatars.githubusercontent.com/u/88027827?v=4
     keywords:
@@ -36,4 +73,4 @@ entries:
     urls:
     - https://embernet-ai.github.io/Codesys-AMD-64-x86/codesys-control-for-linux-sl-2.0.0.tgz
     version: 2.0.0
-generated: "2026-09-26T12:52:57.470606694Z"
+generated: "2026-09-26T14:22:35.33698893Z"
