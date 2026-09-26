@@ -5,6 +5,32 @@
 # Fireball Industries — https://embernet.ai
 # =============================================================================
 
+# ==================== Upgrading from chart `codesys-app` ====================
+# This chart was called `codesys-app` up to 1.6.0. The name is now the vendor's
+# official product name, because a release should say which product it is
+# running, and `codesys-app` named neither the product nor the architecture.
+#
+# THE NAME FEEDS OBJECT NAMES. Deployment, Service and PVC are all derived from
+# it, so upgrading an existing release onto this chart without care renames the
+# PVC, and a renamed PVC means the runtime comes up against empty storage with
+# NO BOOT APPLICATION. On a tester that is a station that runs nothing.
+#
+# So for any release created under the old name, pin:
+#
+#     nameOverride: codesys-app
+#
+# That keeps the object names, the container name, and therefore the PVC
+# byte-identical, and the upgrade is an ordinary rolling restart. Verified
+# against ut3-codesys-en0001 and en0002.
+#
+# Drop the override only when you are deliberately migrating the data, which
+# means: back up /var/opt/codesys, upgrade without it, then restore. Do not do
+# that on a station mid-run.
+#
+# New installs set nothing and get the correct names from the start.
+nameOverride: ""
+fullnameOverride: ""
+
 # ==================== Dashboard-injected values ====================
 # The dashboard's App Store deploy path stamps these in. The chart is
 # responsible for rendering them onto BOTH the pod template and the Service.

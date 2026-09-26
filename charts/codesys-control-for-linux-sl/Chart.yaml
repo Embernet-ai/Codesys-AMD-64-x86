@@ -1,15 +1,15 @@
 apiVersion: v2
-name: codesys-app
-description: CODESYS Control SL Runtime for Linux x86/AMD64 — IEC 61131-3 PLC (prebuilt image)
+name: codesys-control-for-linux-sl
+description: CODESYS Control for Linux SL, the IEC 61131-3 PLC runtime
 type: application
-version: 1.6.0
+version: 2.0.0
 appVersion: "4.22.0.0"
 keywords:
   - codesys
   - plc
   - industrial
   - amd64
-  - x86
+  - arm64
   - iiot
   - iec-61131
   - opc-ua
@@ -20,11 +20,11 @@ maintainers:
   - name: Embernet-ai
     email: support@embernet.ai
 annotations:
-  catalog.cattle.io/display-name: "CODESYS Control SL (AMD64)"
+  catalog.cattle.io/display-name: "CODESYS Control for Linux SL"
   catalog.cattle.io/os: linux
-  catalog.cattle.io/arch: amd64
+  catalog.cattle.io/arch: amd64,arm64
   catalog.cattle.io/certified: partner
-  catalog.cattle.io/release-name: codesys-app
+  catalog.cattle.io/release-name: codesys-control-for-linux-sl
   catalog.cattle.io/namespace: industrial
   catalog.cattle.io/kube-version: ">=1.19.0-0"
   catalog.cattle.io/rancher-version: ">=2.5.0-0"

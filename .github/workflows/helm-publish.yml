@@ -19,8 +19,61 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Helm
         uses: azure/setup-helm@v4
-      - name: Lint chart
-        run: helm lint charts/codesys-app
+      - name: Lint every chart
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          found=0
+          for c in charts/*/Chart.yaml; do
+            d=$(dirname "$c")
+            echo "::group::helm lint $d"
+            helm lint "$d"
+            echo "::endgroup::"
+            found=1
+          done
+          [ "$found" = "1" ] || { echo "no charts found under charts/"; exit 1; }
+
+      # The naming standard, enforced rather than remembered: chart directory,
+      # Chart.yaml name, and the release-name annotation are the vendor's
+      # official product name and must agree. This chart was `codesys-pod`,
+      # then `codesys-app`, and neither named the product, which is how UT3's
+      # values file ended up pointing at a chart that no longer existed.
+      - name: Chart name matches directory and release-name annotation
+        run: |
+          set -euo pipefail
+          rc=0
+          for c in charts/*/Chart.yaml; do
+            d=$(basename "$(dirname "$c")")
+            n=$(grep -E '^name:' "$c" | head -1 | sed 's/^name:[[:space:]]*//')
+            r=$(grep -E 'catalog.cattle.io/release-name:' "$c" | head -1 | sed 's/.*release-name:[[:space:]]*//' | tr -d '"')
+            if [ "$d" != "$n" ]; then
+              echo "::error file=$c::directory '$d' does not match chart name '$n'"; rc=1
+            fi
+            if [ -n "$r" ] && [ "$r" != "$n" ]; then
+              echo "::error file=$c::release-name annotation '$r' does not match chart name '$n'"; rc=1
+            fi
+          done
+          exit $rc
+
+      # These templates render a container command run by /bin/sh. A carriage
+      # return on an executable line is read as part of the last token, so a
+      # path assignment carries a trailing CR and every later reference misses,
+      # silently. Counts CR bytes with tr rather than matching with grep,
+      # because `grep -lIU $'\r'` returns false positives under Git Bash, which
+      # is where anyone hand-packaging would run this check.
+      - name: No CRLF in chart files
+        run: |
+          set -euo pipefail
+          bad=""
+          while IFS= read -r f; do
+            [ "$(tr -cd '\r' < "$f" | wc -c)" -eq 0 ] || bad="${bad}${f}"$'\n'
+          done < <(find charts -type f)
+          if [ -n "$bad" ]; then
+            echo "::error::CRLF found in chart files"
+            printf '%s' "$bad" | sed 's/^/  /'
+            exit 1
+          fi
+          echo "all chart files are LF"
 
   publish:
     needs: lint
@@ -43,8 +96,12 @@ jobs:
 
       - name: Package chart
         run: |
+          set -euo pipefail
+          shopt -s nullglob
           mkdir -p .deploy
-          helm package charts/codesys-app -d .deploy
+          for c in charts/*/Chart.yaml; do
+            helm package "$(dirname "$c")" -d .deploy
+          done
           # Current-version-only index: do NOT merge the live index. Merging
           # carried forward (a) stale codesys-pod versions and (b) the dead
           # codesys-control-sl 1.0.x entries whose tarballs 404 — the chart was

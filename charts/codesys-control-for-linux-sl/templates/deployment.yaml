@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "codesys-app.fullname" . }}
+  name: {{ include "codesys-control-for-linux-sl.fullname" . }}
   labels:
-    {{- include "codesys-app.labels" . | nindent 4 }}
+    {{- include "codesys-control-for-linux-sl.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount | default 1 }}
   # Recreate strategy is REQUIRED when using hostNetwork + RWO PVC node affinity.
@@ -13,12 +13,12 @@ spec:
     type: Recreate
   selector:
     matchLabels:
-      {{- include "codesys-app.selectorLabels" . | nindent 6 }}
+      {{- include "codesys-control-for-linux-sl.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "codesys-app.selectorLabels" . | nindent 8 }}
-        {{- include "codesys-app.storeLabels" . | nindent 8 }}
+        {{- include "codesys-control-for-linux-sl.selectorLabels" . | nindent 8 }}
+        {{- include "codesys-control-for-linux-sl.storeLabels" . | nindent 8 }}
         # app label = registered Flux service name (spec §7 cross-site launch)
         app: {{ .Release.Name | quote }}
         {{- with .Values.tenantLabels }}
@@ -69,7 +69,13 @@ spec:
               mountPath: /seed
 
       containers:
-        - name: {{ .Chart.Name }}
+        # Container name comes from the .name helper, not .Chart.Name directly,
+        # so nameOverride controls it too. That is what lets a release created
+        # under the old chart name upgrade to this one with
+        # `nameOverride: codesys-app` and keep byte-identical object AND
+        # container names, which in turn keeps `kubectl exec -c codesys-app`
+        # and anything else pinned to that name working.
+        - name: {{ include "codesys-control-for-linux-sl.name" . }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -216,14 +222,14 @@ spec:
         - name: data
           {{- if .Values.persistence.enabled }}
           persistentVolumeClaim:
-            claimName: {{ include "codesys-app.fullname" . }}
+            claimName: {{ include "codesys-control-for-linux-sl.fullname" . }}
           {{- else }}
           emptyDir: {}
           {{- end }}
         {{- if .Values.sidecarProxy.enabled }}
         - name: sidecar-proxy-config
           configMap:
-            name: {{ include "codesys-app.fullname" . }}-sidecar-proxy
+            name: {{ include "codesys-control-for-linux-sl.fullname" . }}-sidecar-proxy
         - name: sidecar-proxy-tmp
           emptyDir:
             sizeLimit: 64Mi
