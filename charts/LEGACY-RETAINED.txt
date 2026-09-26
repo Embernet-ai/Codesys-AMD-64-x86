@@ -1,0 +1,37 @@
+# Tarballs already published to gh-pages that must STAY RESOLVABLE in index.yaml
+# even though no chart directory produces them any more.
+#
+# One filename per line. Blank lines and # comments ignored.
+#
+# WHY THIS FILE EXISTS
+#
+# The publish workflow builds a current-version-only index on purpose: prior
+# chart versions predate the App Store contract and must not be resolvable, and
+# a blind `helm repo index --merge` kept resurrecting renamed or dead entries
+# whose tarballs 404.
+#
+# Renaming a chart breaks differently, though. On 2026-09-26 codesys-app became
+# codesys-control-for-linux-sl, and because the index is rebuilt from the chart
+# directories alone, the name codesys-app vanished from index.yaml while
+# keep_files: true left codesys-app-1.6.0.tgz sitting on gh-pages returning 200.
+# Anything resolving the old NAME then fails with "chart not found" even though
+# the file is right there. That broke
+# codesys-automation-server/fleet/deploy-vplc-fleet.sh, which pins
+# CHART="codesys-control-sl/codesys-app" and deploys the 25-release Fragua vPLC
+# fleet.
+#
+# So this list is deliberately NOT "keep everything". It is the specific set of
+# already-published tarballs that consumers still resolve by name, retained for
+# a deprecation window, and it is meant to shrink. Remove a line once every
+# consumer of that name has moved, and the entry leaves the index on the next
+# publish.
+#
+# A file listed here that is missing from gh-pages is a hard error in the
+# workflow rather than a silent skip, because a listed-but-absent tarball is
+# exactly the 404 the policy exists to prevent.
+
+# Retained 2026-09-26. Consumer: codesys-automation-server fleet/deploy-vplc-fleet.sh.
+# Remove once that script has moved to codesys-control-for-linux-sl (or to
+# codesys-virtual-control-for-linux-sl, which is the chart that actually matches
+# the image it sets).
+codesys-app-1.6.0.tgz

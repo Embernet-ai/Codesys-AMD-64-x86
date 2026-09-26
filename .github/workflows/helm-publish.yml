@@ -102,13 +102,57 @@ jobs:
           for c in charts/*/Chart.yaml; do
             helm package "$(dirname "$c")" -d .deploy
           done
-          # Current-version-only index: do NOT merge the live index. Merging
-          # carried forward (a) stale codesys-pod versions and (b) the dead
-          # codesys-control-sl 1.0.x entries whose tarballs 404 — the chart was
-          # renamed in place, so --merge kept resurrecting the old name forever.
-          # Prior chart versions predate the App Store contract and must not be
-          # resolvable. Rebuild index.yaml from .deploy alone (just this build).
+
+      # Still NOT `helm repo index --merge`. Merging trusts the old index, which
+      # is how stale codesys-pod versions and dead codesys-control-sl 1.0.x
+      # entries whose tarballs 404 kept coming back. Prior chart VERSIONS
+      # predate the App Store contract and must not be resolvable.
+      #
+      # A chart RENAME breaks differently, and that difference cost an outage.
+      # Rebuilding from chart directories alone means a renamed chart's old NAME
+      # disappears from index.yaml while keep_files: true leaves its tarball on
+      # gh-pages returning 200. Anything resolving the old name then fails with
+      # "chart not found" while the file sits right there. On 2026-09-26 that
+      # broke codesys-automation-server/fleet/deploy-vplc-fleet.sh, which pins
+      # CHART="codesys-control-sl/codesys-app" for the 25-release Fragua vPLC
+      # fleet.
+      #
+      # charts/LEGACY-RETAINED.txt is the narrow fix: an explicit, shrinking
+      # list of already-published tarballs that must stay resolvable by name for
+      # a deprecation window. Explicit beats --merge because it names what it is
+      # keeping and why, and it cannot resurrect anything nobody asked for.
+      - name: Retain legacy chart names listed in charts/LEGACY-RETAINED.txt
+        run: |
+          set -euo pipefail
+          LIST=charts/LEGACY-RETAINED.txt
+          [ -f "$LIST" ] || { echo "no legacy list, nothing to retain"; exit 0; }
+          BASE=https://embernet-ai.github.io/Codesys-AMD-64-x86
+          rc=0
+          while read -r line; do
+            f="${line%%#*}"; f="$(echo "$f" | tr -d '[:space:]')"
+            [ -n "$f" ] || continue
+            code=$(curl -sS -o ".deploy/$f" -w "%{http_code}" "$BASE/$f" || echo 000)
+            if [ "$code" != "200" ]; then
+              # Hard error, not a skip. A listed-but-absent tarball is exactly
+              # the 404 this policy exists to prevent.
+              echo "::error file=$LIST::$f is listed for retention but $BASE/$f returned $code"
+              rm -f ".deploy/$f"
+              rc=1
+            else
+              echo "retained $f"
+            fi
+          done < "$LIST"
+          exit $rc
+
+      - name: Build index from everything being published
+        run: |
+          set -euo pipefail
+          # Indexes .deploy, which now holds the freshly packaged charts plus any
+          # retained legacy tarballs. Index and files therefore agree by
+          # construction, which is the property that prevents a 404.
           helm repo index .deploy --url https://embernet-ai.github.io/Codesys-AMD-64-x86/
+          echo "--- entries ---"
+          grep -E "^  [a-z][a-z0-9-]*:$" .deploy/index.yaml
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
