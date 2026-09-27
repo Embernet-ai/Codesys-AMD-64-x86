@@ -2,7 +2,7 @@ apiVersion: v2
 name: codesys-control-for-linux-sl
 description: CODESYS Control for Linux SL, the IEC 61131-3 PLC runtime
 type: application
-version: 2.0.4
+version: 2.0.5
 appVersion: "4.22.0.0"
 keywords:
   - codesys
@@ -31,4 +31,4 @@ annotations:
   catalog.cattle.io/namespace: industrial
   catalog.cattle.io/kube-version: ">=1.19.0-0"
   catalog.cattle.io/rancher-version: ">=2.5.0-0"
-  catalog.cattle.io/upstream-version: "4.20.0.0"
+  catalog.cattle.io/upstream-version: "4.22.0.0"
