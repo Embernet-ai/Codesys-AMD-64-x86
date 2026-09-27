@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'charts/**'
+      - 'icon.png'
   workflow_dispatch:
 
 permissions:
@@ -153,6 +154,18 @@ jobs:
           helm repo index .deploy --url https://embernet-ai.github.io/Codesys-AMD-64-x86/
           echo "--- entries ---"
           grep -E "^  [a-z][a-z0-9-]*:$" .deploy/index.yaml
+
+      # Chart.yaml icon and the app-icon annotation point at
+      # https://embernet-ai.github.io/Codesys-AMD-64-x86/icon.png. The store
+      # renders icons with crossorigin=anonymous and github.io sends CORS, so
+      # the logo is served from this repo's own Pages, next to the index that
+      # names it. Missing is a hard error: a chart pointing at a 404 icon shows
+      # a blank card.
+      - name: Publish the chart icon
+        run: |
+          set -euo pipefail
+          [ -f icon.png ] || { echo "::error::icon.png missing; Chart.yaml icon would 404"; exit 1; }
+          cp icon.png .deploy/icon.png
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

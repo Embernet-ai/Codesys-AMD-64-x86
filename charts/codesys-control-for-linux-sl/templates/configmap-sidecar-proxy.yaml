@@ -49,6 +49,19 @@ data:
             ''      close;
         }
 
+        # Dashboard proxy prefix. The dashboard sends X-Embernet-Proxy-Prefix
+        # only on its /api/proxy and /api/appview fallback. Empty means the app
+        # is on its own hostname at its own root, so every rewrite below puts
+        # back exactly what it matched and the page passes through unchanged.
+        map $http_x_embernet_proxy_prefix $embernet_root {
+            ""      "/";
+            default "$http_x_embernet_proxy_prefix/";
+        }
+        map $http_x_embernet_proxy_prefix $embernet_dot {
+            ""      "./";
+            default "$http_x_embernet_proxy_prefix/";
+        }
+
         # Upstream: Application Container (same pod)
         upstream app_backend {
             server 127.0.0.1:{{ .Values.sidecarProxy.upstream.port }};
@@ -95,28 +108,34 @@ data:
                 sub_filter_once off;
                 sub_filter_types text/html text/css application/javascript application/json;
 
-                # HTML Attribute Rewrites (absolute → relative)
-                sub_filter 'src="/'      'src="./' ;
-                sub_filter "src='/"      "src='./" ;
-                sub_filter 'href="/'     'href="./' ;
-                sub_filter "href='/"     "href='./" ;
-                sub_filter 'action="/'   'action="./' ;
-                sub_filter "action='/"   "action='./" ;
+                # Every replacement goes through $embernet_root, so with no
+                # header the output is byte identical to the upstream and with
+                # the header each path carries the dashboard's prefix. The old
+                # "./" replacements broke nested pages at root and url() inside
+                # stylesheets, which resolves against the stylesheet URL.
+
+                # HTML Attribute Rewrites
+                sub_filter 'src="/'      'src="$embernet_root' ;
+                sub_filter "src='/"      "src='$embernet_root" ;
+                sub_filter 'href="/'     'href="$embernet_root' ;
+                sub_filter "href='/"     "href='$embernet_root" ;
+                sub_filter 'action="/'   'action="$embernet_root' ;
+                sub_filter "action='/"   "action='$embernet_root" ;
 
                 # JavaScript String Literal Rewrites
-                sub_filter '"/api/'      '"./api/' ;
-                sub_filter "'/api/"      "'./api/" ;
-                sub_filter '"/public/'   '"./public/' ;
-                sub_filter "'/public/"   "'./public/" ;
+                sub_filter '"/api/'      '"${embernet_root}api/' ;
+                sub_filter "'/api/"      "'${embernet_root}api/" ;
+                sub_filter '"/public/'   '"${embernet_root}public/' ;
+                sub_filter "'/public/"   "'${embernet_root}public/" ;
 
                 # CODESYS WebVisu-specific rewrites
-                sub_filter '"/webvisu'   '"./webvisu' ;
-                sub_filter "'/webvisu"   "'./webvisu" ;
+                sub_filter '"/webvisu'   '"${embernet_root}webvisu' ;
+                sub_filter "'/webvisu"   "'${embernet_root}webvisu" ;
 
                 # CSS url() Rewrites
-                sub_filter 'url(/'       'url(./' ;
-                sub_filter "url('/"      "url('./" ;
-                sub_filter 'url("/'      'url("./' ;
+                sub_filter 'url(/'       'url(${embernet_root}' ;
+                sub_filter "url('/"      "url('${embernet_root}" ;
+                sub_filter 'url("/'      'url("${embernet_root}' ;
 
                 # Base Tag Injection
                 sub_filter '</head>' '<base href="{{ .Values.sidecarProxy.proxyBasePath }}" />\n</head>';

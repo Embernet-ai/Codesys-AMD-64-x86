@@ -31,6 +31,8 @@ spec:
         {{- with .Values.embernet }}{{- if .displayName }}
         embernet.ai/display-name: {{ .displayName | quote }}
         {{- end }}{{- end }}
+        # Deployed tile icon; the dashboard reads the pod first, then the Service.
+        embernet.ai/app-icon: {{ .Chart.Icon | quote }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:

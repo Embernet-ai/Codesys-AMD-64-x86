@@ -4,6 +4,30 @@ All notable changes to the CODESYS Control SL (AMD64/x86) Helm chart.
 
 ---
 
+## [2.0.1] (2026-09-27), chart `codesys-control-for-linux-sl`
+
+### Fixed
+- **Icon is the CODESYS logo.** `Chart.yaml` `icon` was the avatar of the
+  CODESYS-examples GitHub org. It now points at
+  `https://embernet-ai.github.io/Codesys-AMD-64-x86/icon.png`, this repo's
+  `icon.png`, which `helm-publish.yml` now copies next to `index.yaml`.
+  github.io sends CORS, so the store card renders it.
+- **Deployed tile icon.** The pod and the Service carry
+  `embernet.ai/app-icon` from the chart icon. Neither had one.
+- **Sidecar rewrites are header gated** (sidecar is still off by default).
+  Every replacement goes through `$embernet_root`, mapped from
+  `X-Embernet-Proxy-Prefix`: no header, the page and its CSS pass through
+  byte identical apart from the existing `<base href>`; with the header,
+  every path carries the dashboard's prefix. The old `./` rewrite broke
+  nested pages at root and `url()` inside stylesheets.
+
+### Unchanged on purpose
+- `codesys-app` stays in the index through `charts/LEGACY-RETAINED.txt`. Its
+  retained 1.6.0 tarball still carries the old icon, because it is the
+  already-published file.
+
+---
+
 ## [1.5.0] — 2026-08-27
 
 ### Changed

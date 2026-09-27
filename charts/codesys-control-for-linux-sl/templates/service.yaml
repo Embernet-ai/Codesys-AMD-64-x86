@@ -27,6 +27,7 @@ metadata:
     {{- with .Values.embernet }}{{- if .displayName }}
     embernet.ai/display-name: {{ .displayName | quote }}
     {{- end }}{{- end }}
+    embernet.ai/app-icon: {{ .Chart.Icon | quote }}
 spec:
   type: {{ .Values.service.type | default "ClusterIP" }}
   ports:

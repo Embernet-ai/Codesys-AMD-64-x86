@@ -2,7 +2,7 @@ apiVersion: v2
 name: codesys-control-for-linux-sl
 description: CODESYS Control for Linux SL, the IEC 61131-3 PLC runtime
 type: application
-version: 2.0.0
+version: 2.0.1
 appVersion: "4.22.0.0"
 keywords:
   - codesys
@@ -15,7 +15,10 @@ keywords:
   - opc-ua
   - webvisu
 home: https://github.com/Embernet-ai/Codesys-AMD-64-x86
-icon: https://avatars.githubusercontent.com/u/88027827?v=4
+# The CODESYS logo, served from this repo's own Pages (the publish workflow
+# copies icon.png next to index.yaml). The old URL was the avatar of the
+# CODESYS-examples GitHub org, not the product logo.
+icon: https://embernet-ai.github.io/Codesys-AMD-64-x86/icon.png
 maintainers:
   - name: Embernet-ai
     email: support@embernet.ai
