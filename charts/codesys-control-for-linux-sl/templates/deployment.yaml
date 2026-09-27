@@ -100,26 +100,40 @@ spec:
           #
           # Both edits are guarded by grep, so restarts and re-applies are safe.
           #
-          # Each edit APPENDS its own section. The first version used
-          # `sed '/^\[CmpApp\]/a ...'`, which silently does nothing when the
-          # section is not already in the file. It also exec'd codesyscontrol.bin
-          # directly, which skipped the image's entrypoint.sh: no pre_start.sh,
-          # no LD_LIBRARY_PATH=/opt/codesys/lib, no PRODUCT. Handing off to the
-          # entrypoint keeps the 4.22 launch contract exactly as the image ships it.
+          # Each setting goes INTO its section when the file already has one,
+          # and gets a new section only when it does not. The 4.22 image ships
+          # both [CmpApp] and [CmpUserMgr], and the runtime reads only the first
+          # copy of a section: 2.0.3 appended a second [CmpApp] and a live
+          # station came up "CODESYS Control ready" with no application at all.
+          # The first version had the opposite hole, inserting only when the
+          # section existed and doing nothing otherwise. It also exec'd
+          # codesyscontrol.bin directly, which skipped the image's entrypoint.sh
+          # (no pre_start.sh, no LD_LIBRARY_PATH, no PRODUCT); handing off to
+          # the entrypoint keeps the 4.22 launch contract as the image ships it.
           command:
             - /bin/sh
             - -c
             - |
               set -e
               CFG=/etc/codesyscontrol/CODESYSControl_User.cfg
+              # ensure SECTION KEY=VALUE: exactly one line, inside the first copy
+              # of SECTION.
+              ensure() {
+                grep -q "^$2\$" "$CFG" && return 0
+                if grep -q "^\[$1\]" "$CFG"; then
+                  sed -i "0,/^\[$1\]/s//[$1]\n$2/" "$CFG"
+                else
+                  printf '\n[%s]\n%s\n' "$1" "$2" >> "$CFG"
+                fi
+              }
               {{- if .Values.runtimeConfig.registerBootApplication }}
               # A boot application copied into PlcLogic/Application/ is NEVER
               # loaded unless it is listed here. A download from the IDE
               # registers it; a file copy does not, and the runtime then starts
               # with no application and says nothing about a bootproject. Only
               # registered when the file is actually there.
-              if [ -f /var/opt/codesys/PlcLogic/Application/Application.app ] && ! grep -q '^Application.1=Application' "$CFG"; then
-                printf '\n[CmpApp]\nApplication.1=Application\n' >> "$CFG"
+              if [ -f /var/opt/codesys/PlcLogic/Application/Application.app ]; then
+                ensure CmpApp Application.1=Application
               fi
               {{- end }}
               {{- if .Values.runtimeConfig.disableUserMgmtEnforce }}
@@ -127,7 +141,7 @@ spec:
               # with an EMPTY user database. The OPC UA server then advertises a
               # single anonymous endpoint and answers ActivateSession with
               # BadUserAccessDenied, so no client can ever read the station.
-              grep -q '^SECURITY.UserMgmtEnforce=NO' "$CFG" || printf '\n[CmpUserMgr]\nSECURITY.UserMgmtEnforce=NO\n' >> "$CFG"
+              ensure CmpUserMgr SECURITY.UserMgmtEnforce=NO
               {{- end }}
               exec /usr/local/bin/entrypoint.sh
           {{- else }}

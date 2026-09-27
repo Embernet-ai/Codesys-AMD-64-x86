@@ -4,6 +4,20 @@ All notable changes to the CODESYS Control SL (AMD64/x86) Helm chart.
 
 ---
 
+## [2.0.4] (2026-09-27), chart `codesys-control-for-linux-sl`
+
+### Fixed
+
+- **2.0.3 stopped the boot application from loading.** It appended its own
+  `[CmpApp]` and `[CmpUserMgr]` sections, but the 4.22 image already ships
+  both, and the runtime only reads the first copy of a section. The first
+  station moved to 2.0.3 came up "CODESYS Control ready" with its
+  `Application.app` on disk and no application running. Each setting now goes
+  into the existing section (right under its first header, where the 1.x chart
+  put it and where it worked) and a new section is written only when the file
+  has none. Verified on `codesys-control-sl:4.22.0.0`: one section each, the
+  line inside it, and a re-run changes nothing.
+
 ## [2.0.3] (2026-09-27), chart `codesys-control-for-linux-sl`
 
 ### Fixed
