@@ -13,7 +13,7 @@ entries:
       catalog.cattle.io/upstream-version: 4.20.0.0
     apiVersion: v2
     appVersion: 4.22.0.0
-    created: "2026-09-27T17:05:23.315924897Z"
+    created: "2026-09-27T17:18:47.72495964Z"
     description: CODESYS Control SL Runtime for Linux x86/AMD64 — IEC 61131-3 PLC
       (prebuilt image)
     digest: 94622e76ea994fbc081f61a43f88a585ce742f65a987da14bf2dbea651d04e96
@@ -50,9 +50,9 @@ entries:
       catalog.cattle.io/upstream-version: 4.20.0.0
     apiVersion: v2
     appVersion: 4.22.0.0
-    created: "2026-09-27T17:05:23.316751466Z"
+    created: "2026-09-27T17:18:47.72575567Z"
     description: CODESYS Control for Linux SL, the IEC 61131-3 PLC runtime
-    digest: 2e7829fdb3f6283786113af35d05af6414b8093698d9910166febda2f5319e8c
+    digest: c31812bc6152df5e64ca4888deb27078f6f46766f0c9416cbaf96939fd509cd8
     home: https://github.com/Embernet-ai/Codesys-AMD-64-x86
     icon: https://embernet-ai.github.io/Codesys-AMD-64-x86/icon.png
     keywords:
@@ -71,6 +71,6 @@ entries:
     name: codesys-control-for-linux-sl
     type: application
     urls:
-    - https://embernet-ai.github.io/Codesys-AMD-64-x86/codesys-control-for-linux-sl-2.0.2.tgz
-    version: 2.0.2
-generated: "2026-09-27T17:05:23.314020949Z"
+    - https://embernet-ai.github.io/Codesys-AMD-64-x86/codesys-control-for-linux-sl-2.0.3.tgz
+    version: 2.0.3
+generated: "2026-09-27T17:18:47.723477626Z"
