@@ -35,7 +35,7 @@ spec:
     # IDE actually connects to (device download). The runtime does NOT ship a
     # gateway, so :1217 below never binds; 11740 is the real IDE/device port.
     - port: {{ .Values.service.ports.runtime | default 11740 }}
-      targetPort: {{ .Values.service.ports.runtime | default 11740 }}
+      targetPort: {{ (include "codesys-control-for-linux-sl.hostPorts" . | fromJson).runtime | default .Values.service.ports.runtime | default 11740 }}
       protocol: TCP
       name: runtime
     - port: {{ .Values.service.ports.gateway }}

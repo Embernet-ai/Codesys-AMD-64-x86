@@ -4,6 +4,30 @@ All notable changes to the CODESYS Control SL (AMD64/x86) Helm chart.
 
 ---
 
+## [2.1.0] (2026-09-27), chart `codesys-control-for-linux-sl`
+
+### Added
+
+- **Every host port can move, and the runtime moves with it.** With
+  `network.hostNetwork: true` the pod shares the node's network, so a second
+  CODESYS runtime on the node (Virtual Control binds the same 11740 and 4840),
+  an Edge Gateway (1217), or Telegraf (8080) cannot schedule next to it.
+  `network.hostPorts.runtime`, `.opcua`, and `.gateway` move the
+  containerPort and hostPort together (Kubernetes rejects a hostNetwork pod
+  where they differ), and the start script writes the matching key into
+  `CODESYSControl_User.cfg`: `[CmpBlkDrvTcp] ListenPort` and
+  `[CmpOPCUAServer] NetworkPort`. `network.udpPortIndex` (0 to 3) sets
+  `[CmpBlkDrvUdp] DefaultPortIndex`, which picks UDP 1740 to 1743; the runtime
+  binds that port without declaring it, so the scheduler could never see that
+  clash. Each key was proven on `codesys-control-sl:4.22.0.0` by setting it and
+  watching `ss`. The Service keeps its ports. Empty (the default) renders
+  exactly what 2.0.4 did, in every toggle combination tried; all of them are
+  ignored when hostNetwork is off. There is no knob for WebVisu's 8080: its
+  web server only starts with a WebVisu application running, so its port key
+  could not be proven.
+- **Carries 2.0.5.** `catalog.cattle.io/upstream-version` says 4.22.0.0,
+  matching `appVersion` and the image tag.
+
 ## [2.0.5] (2026-09-27), chart `codesys-control-for-linux-sl`
 
 ### Fixed

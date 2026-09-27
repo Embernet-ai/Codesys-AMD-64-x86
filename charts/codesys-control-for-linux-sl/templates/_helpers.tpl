@@ -64,3 +64,63 @@ embernet.ai/gui-port: {{ .Values.sidecarProxy.listenPort | quote }}
 embernet.ai/gui-port: {{ .Values.gui.port | default .Values.service.port | quote }}
 {{- end }}
 {{- end }}
+
+{{/*
+Host ports that move when hostNetwork is on, as JSON: {"runtime":11750,...,
+"udpPortIndex":"2"}. Empty when hostNetwork is off or nothing is set, and then
+every template renders exactly what it always has.
+
+Why only under hostNetwork: that is the only mode where two runtimes on one
+node fight over a port, because the pod IS the node's network. It is also the
+mode where Kubernetes insists hostPort equals containerPort, so a host port
+cannot be moved on its own; the runtime has to listen on the new port too.
+That is what the runtimeConfig script does with these (see deployment.yaml).
+*/}}
+{{- define "codesys-control-for-linux-sl.hostPorts" -}}
+{{- $out := dict -}}
+{{- if .Values.network.hostNetwork -}}
+{{- $hp := .Values.network.hostPorts | default dict -}}
+{{- range $k := list "runtime" "gateway" "opcua" -}}
+{{- with index $hp $k -}}
+{{- $p := int . -}}
+{{- if or (lt $p 1) (gt $p 65535) -}}
+{{- fail (printf "network.hostPorts.%s must be a port number, got %v" $k .) -}}
+{{- end -}}
+{{- $_ := set $out $k $p -}}
+{{- end -}}
+{{- end -}}
+{{- $idx := .Values.network.udpPortIndex -}}
+{{- if and (not (kindIs "invalid" $idx)) (ne (toString $idx) "") -}}
+{{- if not (has (toString $idx) (list "0" "1" "2" "3")) -}}
+{{- fail (printf "network.udpPortIndex must be 0, 1, 2, or 3 (UDP 1740 to 1743), got %v" $idx) -}}
+{{- end -}}
+{{- $_ := set $out "udpPortIndex" (toString $idx) -}}
+{{- end -}}
+{{- end -}}
+{{- toJson $out -}}
+{{- end }}
+
+{{/*
+setkey FILE SECTION KEY VALUE for the runtime config scripts: KEY=VALUE inside
+the FIRST [SECTION] (the runtime reads only the first copy of a section),
+replacing any KEY= line already there, and adding the section when the file has
+none. Written with awk because the images ship mawk, sed, and grep and nothing
+fancier. The file is rewritten in place with cat so its owner and mode stay.
+*/}}
+{{- define "codesys.setkey" -}}
+setkey() {
+  awk -v s="[$2]" -v k="$3" -v v="$4" '
+    { line = $0; sub(/\r$/, "", line) }
+    line ~ /^\[/ {
+      if (insec && !done) { print k "=" v; done = 1 }
+      insec = (!done && line == s)
+      print; next
+    }
+    insec && index(line, k "=") == 1 { next }
+    { print }
+    END {
+      if (!done && insec) print k "=" v
+      else if (!done) { print ""; print s; print k "=" v }
+    }' "$1" > "$1.setkey" && cat "$1.setkey" > "$1" && rm -f "$1.setkey"
+}
+{{- end }}

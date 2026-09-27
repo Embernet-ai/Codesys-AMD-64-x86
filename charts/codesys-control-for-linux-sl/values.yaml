@@ -130,6 +130,36 @@ network:
   # node that needs raw host-IP access and accept it cannot be scaled per node.
   hostNetwork: false
   extraPorts: []
+  # Where each socket sits on the NODE when hostNetwork is on, so a second
+  # runtime can share the node without a port fight. Empty keeps the port in
+  # service.ports, which is exactly what this chart has always done. Ignored
+  # when hostNetwork is off, because then the pod has its own network.
+  #
+  # Kubernetes wants hostPort == containerPort under hostNetwork, so moving a
+  # host port only works if the runtime moves with it. The chart does that by
+  # writing CODESYSControl_User.cfg at start (the runtimeConfig script). The
+  # Service keeps its ports, so in-cluster clients see no change. Each key was
+  # proven on codesys-control-sl:4.22.0.0 by setting it and watching ss:
+  #
+  #   runtime  [CmpBlkDrvTcp] ListenPort       the IDE connects here
+  #   opcua    [CmpOPCUAServer] NetworkPort
+  #   gateway  nothing: this runtime ships no gateway and never binds 1217, so
+  #            this only moves the declaration (the scheduler still counts it,
+  #            which is what stops an Edge Gateway landing on the same node).
+  #
+  # webvisu (8080) is deliberately not here. The web server only starts with a
+  # WebVisu application running, and its port key could not be proven, so a
+  # knob for it would be a guess.
+  hostPorts:
+    runtime: ""
+    gateway: ""
+    opcua: ""
+  # The runtime also binds UDP 1740 (+index) for discovery, and never declares
+  # it, so the scheduler cannot see a clash there: two hostNetwork runtimes both
+  # want 1740 and the second loses it. [CmpBlkDrvUdp] DefaultPortIndex picks
+  # 1740 + 0..3 and nothing else is possible (the Edge Gateway ships index 3).
+  # Empty keeps the image default, 0.
+  udpPortIndex: ""
 
 # ==================== Security Context ====================
 securityContext:

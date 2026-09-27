@@ -34,6 +34,7 @@ spec:
         # Deployed tile icon; the dashboard reads the pod first, then the Service.
         embernet.ai/app-icon: {{ .Chart.Icon | quote }}
     spec:
+      {{- $hp := include "codesys-control-for-linux-sl.hostPorts" . | fromJson }}
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -82,7 +83,7 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if or .Values.runtimeConfig.registerBootApplication .Values.runtimeConfig.disableUserMgmtEnforce }}
+          {{- if or .Values.runtimeConfig.registerBootApplication .Values.runtimeConfig.disableUserMgmtEnforce $hp }}
           # Runtime config bootstrap.
           #
           # /etc/codesyscontrol/ lives in the IMAGE, not on the PVC, and an
@@ -143,6 +144,23 @@ spec:
               # BadUserAccessDenied, so no client can ever read the station.
               ensure CmpUserMgr SECURITY.UserMgmtEnforce=NO
               {{- end }}
+              {{- if $hp }}
+              # network.hostPorts / network.udpPortIndex: under hostNetwork the
+              # runtime's own sockets ARE the node's, so it has to listen where
+              # the hostPort says. Keys proven on codesys-control-sl:4.22.0.0 by
+              # moving each port and watching ss: CmpBlkDrvTcp ListenPort,
+              # CmpOPCUAServer NetworkPort, CmpBlkDrvUdp DefaultPortIndex.
+              {{- include "codesys.setkey" . | nindent 14 }}
+              {{- with $hp.runtime }}
+              setkey "$CFG" CmpBlkDrvTcp ListenPort {{ . }}
+              {{- end }}
+              {{- with $hp.opcua }}
+              setkey "$CFG" CmpOPCUAServer NetworkPort {{ . }}
+              {{- end }}
+              {{- with $hp.udpPortIndex }}
+              setkey "$CFG" CmpBlkDrvUdp DefaultPortIndex {{ . }}
+              {{- end }}
+              {{- end }}
               exec /usr/local/bin/entrypoint.sh
           {{- else }}
           # No command: the image ENTRYPOINT runs the runtime verbatim from the
@@ -152,22 +170,22 @@ spec:
           {{- end }}
           ports:
             - name: runtime
-              containerPort: {{ .Values.service.ports.runtime }}
+              containerPort: {{ $hp.runtime | default .Values.service.ports.runtime }}
               protocol: TCP
               {{- if .Values.network.hostNetwork }}
-              hostPort: {{ .Values.service.ports.runtime }}
+              hostPort: {{ $hp.runtime | default .Values.service.ports.runtime }}
               {{- end }}
             - name: gateway
-              containerPort: {{ .Values.service.ports.gateway }}
+              containerPort: {{ $hp.gateway | default .Values.service.ports.gateway }}
               protocol: TCP
               {{- if .Values.network.hostNetwork }}
-              hostPort: {{ .Values.service.ports.gateway }}
+              hostPort: {{ $hp.gateway | default .Values.service.ports.gateway }}
               {{- end }}
             - name: opcua
-              containerPort: {{ .Values.service.ports.opcua }}
+              containerPort: {{ $hp.opcua | default .Values.service.ports.opcua }}
               protocol: TCP
               {{- if .Values.network.hostNetwork }}
-              hostPort: {{ .Values.service.ports.opcua }}
+              hostPort: {{ $hp.opcua | default .Values.service.ports.opcua }}
               {{- end }}
             - name: webvisu
               containerPort: {{ .Values.service.ports.webvisu }}
