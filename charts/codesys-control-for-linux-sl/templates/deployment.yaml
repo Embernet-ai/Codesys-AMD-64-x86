@@ -99,6 +99,13 @@ spec:
           # fix that deployment's own runbook asked for and never got.
           #
           # Both edits are guarded by grep, so restarts and re-applies are safe.
+          #
+          # Each edit APPENDS its own section. The first version used
+          # `sed '/^\[CmpApp\]/a ...'`, which silently does nothing when the
+          # section is not already in the file. It also exec'd codesyscontrol.bin
+          # directly, which skipped the image's entrypoint.sh: no pre_start.sh,
+          # no LD_LIBRARY_PATH=/opt/codesys/lib, no PRODUCT. Handing off to the
+          # entrypoint keeps the 4.22 launch contract exactly as the image ships it.
           command:
             - /bin/sh
             - -c
@@ -109,18 +116,20 @@ spec:
               # A boot application copied into PlcLogic/Application/ is NEVER
               # loaded unless it is listed here. A download from the IDE
               # registers it; a file copy does not, and the runtime then starts
-              # with no application and says nothing about a bootproject.
-              grep -q '^Application.1=' "$CFG" || sed -i '/^\[CmpApp\]/a Application.1=Application' "$CFG"
+              # with no application and says nothing about a bootproject. Only
+              # registered when the file is actually there.
+              if [ -f /var/opt/codesys/PlcLogic/Application/Application.app ] && ! grep -q '^Application.1=Application' "$CFG"; then
+                printf '\n[CmpApp]\nApplication.1=Application\n' >> "$CFG"
+              fi
               {{- end }}
               {{- if .Values.runtimeConfig.disableUserMgmtEnforce }}
               # The station image ships UserLogin_AuthenticationType=ONLY_ASYMMETRIC
               # with an EMPTY user database. The OPC UA server then advertises a
               # single anonymous endpoint and answers ActivateSession with
-              # BadUserAccessDenied, so no client can ever read the tester.
-              grep -q '^SECURITY.UserMgmtEnforce=' "$CFG" || sed -i '/^\[CmpUserMgr\]/a SECURITY.UserMgmtEnforce=NO' "$CFG"
+              # BadUserAccessDenied, so no client can ever read the station.
+              grep -q '^SECURITY.UserMgmtEnforce=NO' "$CFG" || printf '\n[CmpUserMgr]\nSECURITY.UserMgmtEnforce=NO\n' >> "$CFG"
               {{- end }}
-              cd /var/opt/codesys
-              exec /opt/codesys/bin/codesyscontrol.bin /etc/codesyscontrol/CODESYSControl.cfg
+              exec /usr/local/bin/entrypoint.sh
           {{- else }}
           # No command: the image ENTRYPOINT runs the runtime verbatim from the
           # .deb's own init script:

@@ -4,6 +4,30 @@ All notable changes to the CODESYS Control SL (AMD64/x86) Helm chart.
 
 ---
 
+## [2.0.3] (2026-09-27), chart `codesys-control-for-linux-sl`
+
+### Fixed
+
+- **The runtime config bootstrap skipped the image's entrypoint.** With
+  `runtimeConfig.registerBootApplication` or `disableUserMgmtEnforce` on, the
+  chart replaced the container command and exec'd `codesyscontrol.bin`
+  itself, so `pre_start.sh` never ran and the runtime started without
+  `LD_LIBRARY_PATH=/opt/codesys/lib` or `PRODUCT`, the launch contract the 4.22
+  image's `entrypoint.sh` reproduces from the vendor's systemd unit. It hands
+  off to `/usr/local/bin/entrypoint.sh` now.
+- **Both edits could silently do nothing.** They used
+  `sed '/^\[CmpApp\]/a ...'`, which adds nothing when the section is not
+  already in the file. Each edit appends its own section now, still guarded by
+  grep so restarts do not stack duplicates.
+- **The boot application is only registered when it exists.** Registering
+  `Application` with no `Application.app` on disk points the runtime at nothing.
+
+Verified against `ghcr.io/embernet-ai/codesys-control-sl:4.22.0.0` with the
+entrypoint overridden the way a pod `command` does it: both lines land in
+`CODESYSControl_User.cfg`, `pre_start.sh` reports OK, PID 1 is
+`codesyscontrol.bin` with the library path and product set, and a second pass
+adds nothing. Same logic a live rootless Podman station was already running.
+
 ## [2.0.2] (2026-09-27), chart `codesys-control-for-linux-sl`
 
 ### Changed
