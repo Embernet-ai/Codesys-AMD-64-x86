@@ -91,13 +91,12 @@ spec:
           # edits have to be re-applied at every start, which is why this is a
           # command rather than an init container writing a file once.
           #
-          # This existed on the Trane stations only as a hand-applied
+          # This once existed on a site's stations only as a hand-applied
           # `kubectl patch`, two Deployment revisions ahead of the Helm
           # release. That is drift with teeth: the next `helm upgrade` reverts
-          # the Deployment to the chart, both lines disappear, and the tester
-          # goes dark in a way that logs almost nothing. Owning it here is what
-          # docs/deploy/trane-ut3-cp02/PLC-RUNTIME-BOOT-APPLICATION.md asked
-          # for and never got.
+          # the Deployment to the chart, both lines disappear, and the station
+          # goes dark in a way that logs almost nothing. Owning it here is the
+          # fix that deployment's own runbook asked for and never got.
           #
           # Both edits are guarded by grep, so restarts and re-applies are safe.
           command:

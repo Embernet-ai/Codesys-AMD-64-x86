@@ -4,6 +4,16 @@ All notable changes to the CODESYS Control SL (AMD64/x86) Helm chart.
 
 ---
 
+## [2.0.2] (2026-09-27), chart `codesys-control-for-linux-sl`
+
+### Changed
+
+- Comments in the published chart no longer name a customer, a site, or a
+  station. The chart is served from a public Pages site, and nine comment lines
+  in `values.yaml`, `deployment.yaml`, and `service.yaml` carried them. The
+  technical content of each note is unchanged, and the rendered manifests are
+  identical to 2.0.1 apart from the version label.
+
 ## [2.0.1] (2026-09-27), chart `codesys-control-for-linux-sl`
 
 ### Fixed

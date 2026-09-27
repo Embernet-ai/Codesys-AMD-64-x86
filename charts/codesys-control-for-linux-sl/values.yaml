@@ -21,7 +21,7 @@
 #
 # That keeps the object names, the container name, and therefore the PVC
 # byte-identical, and the upgrade is an ordinary rolling restart. Verified
-# against ut3-codesys-en0001 and en0002.
+# against two live stations.
 #
 # Drop the override only when you are deliberately migrating the data, which
 # means: back up /var/opt/codesys, upgrade without it, then restore. Do not do
@@ -134,7 +134,7 @@ network:
 # ==================== Security Context ====================
 securityContext:
   # CODESYS requires privileged access for hardware and networking, and unlike
-  # most claims of that shape this one is measurable. On the live ut3-codesys
+  # most claims of that shape this one is measurable. On a live CODESYS runtime
   # pod: CapEff is 000001ffffffffff — the FULL capability set — and the
   # container sees the host's entire /dev (dri, drm_dp_aux0, bsg, cpu,
   # dma_heap, autofs...). A runtime that drives fieldbus hardware needs device
@@ -197,8 +197,8 @@ sidecarProxy:
 # BOTH DEFAULT OFF, deliberately, because neither is right for every station:
 #
 #   registerBootApplication  Only needed when the boot application is PUT there
-#                            by a file copy, which is how the Trane stations get
-#                            a release from S3. A download from the CODESYS IDE
+#                            by a file copy, which is how a station gets a
+#                            release synced from object storage. A download from the CODESYS IDE
 #                            registers the application itself, so a station that
 #                            is always loaded from the IDE does not want this.
 #
@@ -211,10 +211,10 @@ sidecarProxy:
 #                            network. The alternative is granting the implicit
 #                            Anonymous_OPCUAServer group its rights from the IDE.
 #
-# On the Trane stations both must be true. They were applied there by hand with
-# kubectl patch and were never in the chart, which left the live Deployment two
-# revisions ahead of the Helm release and one upgrade away from going dark. See
-# UT3-Code docs/deploy/trane-ut3-cp02/PLC-RUNTIME-BOOT-APPLICATION.md.
+# A station loaded by file copy and read by an Ignition gateway needs both true.
+# They were once applied by hand with kubectl patch and were never in the chart,
+# which left the live Deployment two revisions ahead of the Helm release and one
+# upgrade away from going dark.
 runtimeConfig:
   registerBootApplication: false
   disableUserMgmtEnforce: false

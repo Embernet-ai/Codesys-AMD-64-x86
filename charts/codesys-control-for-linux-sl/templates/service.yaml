@@ -4,9 +4,9 @@ metadata:
   # MUST be exactly .Release.Name: the dashboard builds the launch FQDN from the
   # Service object name (services.go:98) while the node-card path builds it from
   # the pod's app.kubernetes.io/instance label (= .Release.Name). If they differ
-  # the node card 502s. `fullname` appended "-codesys-pod", so `ut3-codesys`
-  # rendered Service `ut3-codesys-codesys-pod` — the break that stopped a second
-  # instance from being reachable. See App Store chart spec §4.
+  # the node card 502s. `fullname` appended "-codesys-pod", so a release named
+  # `site-codesys` rendered Service `site-codesys-codesys-pod`, the break that
+  # stopped a second instance from being reachable. See App Store chart spec §4.
   name: {{ .Release.Name }}
   labels:
     {{- include "codesys-control-for-linux-sl.labels" . | nindent 4 }}
