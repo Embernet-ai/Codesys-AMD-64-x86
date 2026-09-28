@@ -35,3 +35,10 @@
 # codesys-virtual-control-for-linux-sl, which is the chart that actually matches
 # the image it sets).
 codesys-app-1.6.0.tgz
+
+# Retained 2026-09-28: the version before 2.1.0. The index is rebuilt from the
+# chart directories alone, so 2.1.0 dropped 2.0.4 while its tarball still
+# returned 200, and every station installed at 2.0.4 lost the version it runs.
+# A release adds a version, it doesn't take one away. When the next release
+# ships, the version it replaces goes here too.
+codesys-control-for-linux-sl-2.0.4.tgz

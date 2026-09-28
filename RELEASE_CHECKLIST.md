@@ -157,6 +157,7 @@ Every one of these, every release. Paste the output in the PR or the commit body
 After the workflow runs:
 
 - [ ] `index.yaml` on Pages lists the new version with an **absolute** URL, and `codesys-app` 1.6.0 is still there for as long as `LEGACY-RETAINED.txt` lists it
+- [ ] Every version that was in the index before the push is still in it. Save `index.yaml` before you push and compare after. The index is rebuilt from the chart directories, so the version you just replaced drops out unless its tarball is on `LEGACY-RETAINED.txt`; add it there in the same release.
 - [ ] The published tarball is what `main` holds:
   ```bash
   curl -sO https://embernet-ai.github.io/Codesys-AMD-64-x86/codesys-control-for-linux-sl-<VERSION>.tgz
@@ -249,7 +250,7 @@ helm uninstall cds-verify -n ember-verify && kubectl delete ns ember-verify
 
 We do not roll back. Not the commit, not the cluster.
 
-* **Do not revert `main`.** The index only carries the current version of each chart. A revert publishes an older chart as the only choice, the store sees a version go backwards, and every station already on the newer version is now running something the index does not list.
+* **Do not revert `main`.** The index is rebuilt from `main`, so a revert publishes an older chart as the newest one, the store sees a version go backwards, and every station already on the newer version is now running something the index does not list, because nothing retains a version that was never replaced.
 * **Do not `helm rollback`.** It puts the cluster on a revision that neither `main` nor the index describes, and the next upgrade from the store quietly undoes it.
 * **Ship the next patch version with the fix.** Same checklist, all of it. 2.0.3 stopped applications from loading; 2.0.4 went out the same afternoon and put the settings back inside the sections the runtime actually reads. Nobody rolled anything back. That is the whole procedure.
 * **Write it down** in the new version's CHANGELOG entry: what broke, how it was found, and how the fix was verified.
