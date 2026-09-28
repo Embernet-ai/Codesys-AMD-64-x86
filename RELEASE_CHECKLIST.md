@@ -95,6 +95,7 @@ helm template test-release $C | grep 'embernet.ai/app-icon'
 - [ ] `network.hostNetwork: false` is the default in `values.yaml`
 - [ ] Default render has `dnsPolicy: ClusterFirst`, no `hostNetwork`, no `hostPort`
 - [ ] `--set network.hostNetwork=true` renders `hostNetwork: true`, `dnsPolicy: ClusterFirstWithHostNet`, and `hostPort` on 11740, 1217, 4840, and 8080 (plus 8081 with the sidecar)
+- [ ] Moved host ports move the runtime too: `--set network.hostNetwork=true --set network.hostPorts.runtime=11750 --set network.hostPorts.opcua=4850 --set network.udpPortIndex=2` renders containerPort equal to hostPort on 11750 and 4850, and the start script writes `ListenPort 11750`, `NetworkPort 4850`, and `DefaultPortIndex 2` into `CODESYSControl_User.cfg`. The Service keeps 11740 and 4840. With hostNetwork off the same flags change nothing.
 
 ```bash
 helm template test-release $C | grep -E "hostNetwork:|dnsPolicy|hostPort"
@@ -260,7 +261,7 @@ We do not roll back. Not the commit, not the cluster.
 | Field | Value |
 |-------|-------|
 | Chart | `codesys-control-for-linux-sl` |
-| Chart Version | `2.0.5` |
+| Chart Version | `2.1.0` |
 | App Version | `4.22.0.0` |
 | Image | `ghcr.io/embernet-ai/codesys-control-sl:4.22.0.0` (linux/amd64, linux/arm64) |
 | Base Image | `debian:bookworm-slim` (built in `Embernet-ai/codesys-packages`) |

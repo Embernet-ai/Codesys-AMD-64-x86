@@ -25,10 +25,6 @@ All notable changes to the CODESYS Control SL (AMD64/x86) Helm chart.
   ignored when hostNetwork is off. There is no knob for WebVisu's 8080: its
   web server only starts with a WebVisu application running, so its port key
   could not be proven.
-- **Carries 2.0.5.** `catalog.cattle.io/upstream-version` says 4.22.0.0,
-  matching `appVersion` and the image tag.
-
-## [2.0.5] (2026-09-27), chart `codesys-control-for-linux-sl`
 
 ### Fixed
 
@@ -36,8 +32,9 @@ All notable changes to the CODESYS Control SL (AMD64/x86) Helm chart.
   4.20.0.0 when 1.5.0 moved the runtime to 4.22.0.0 and rode along through
   every release since, so Rancher and the store showed a runtime version the
   chart has not shipped in a month. The release checklist requires the
-  annotation to match `appVersion`, and nothing else changed: the image tag,
-  `appVersion`, templates, and values are exactly what 2.0.4 shipped.
+  annotation to match `appVersion`. This was held as 2.0.5 and never shipped on
+  its own, so it goes out here. It is Chart.yaml metadata only; no render moves
+  because of it.
 
 ## [2.0.4] (2026-09-27), chart `codesys-control-for-linux-sl`
 
