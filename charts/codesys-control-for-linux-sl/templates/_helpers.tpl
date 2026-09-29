@@ -80,7 +80,10 @@ That is what the runtimeConfig script does with these (see deployment.yaml).
 {{- $out := dict -}}
 {{- if .Values.network.hostNetwork -}}
 {{- $hp := .Values.network.hostPorts | default dict -}}
-{{- range $k := list "runtime" "gateway" "opcua" -}}
+{{- /* "gateway" is deliberately absent: it renders nowhere as of 2.2.0, so
+collecting it here would only make $hp non-empty and switch the pod onto the
+runtime-config command wrapper for a value that changes nothing. */ -}}
+{{- range $k := list "runtime" "opcua" -}}
 {{- with index $hp $k -}}
 {{- $p := int . -}}
 {{- if or (lt $p 1) (gt $p 65535) -}}

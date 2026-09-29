@@ -31,17 +31,17 @@ metadata:
 spec:
   type: {{ .Values.service.type | default "ClusterIP" }}
   ports:
-    # CODESYS Control for Linux SL runtime comms port — this is what the CODESYS
-    # IDE actually connects to (device download). The runtime does NOT ship a
-    # gateway, so :1217 below never binds; 11740 is the real IDE/device port.
+    # CODESYS Control for Linux SL runtime comms port. This is what the CODESYS
+    # IDE actually connects to (device download), directly or by way of an Edge
+    # Gateway. 11740 is the real IDE/device port; the runtime ships no gateway.
     - port: {{ .Values.service.ports.runtime | default 11740 }}
       targetPort: {{ (include "codesys-control-for-linux-sl.hostPorts" . | fromJson).runtime | default .Values.service.ports.runtime | default 11740 }}
       protocol: TCP
       name: runtime
-    - port: {{ .Values.service.ports.gateway }}
-      targetPort: gateway
-      protocol: TCP
-      name: gateway
+    {{- /* gateway (1217) is not published. It targeted a container port that no
+    longer exists, and before that it advertised a socket the runtime never
+    binds, so every connection to it was refused. Run the Edge Gateway chart if
+    you want a gateway; it binds 1217 for real. */}}
     - port: {{ .Values.service.ports.opcua }}
       targetPort: opcua
       protocol: TCP

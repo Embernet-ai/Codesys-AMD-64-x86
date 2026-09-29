@@ -87,8 +87,15 @@ service:
   type: ClusterIP
   port: 8080
   ports:
-    runtime: 11740      # CODESYS Control SL runtime/device port — the IDE connects here
-    gateway: 1217       # (no gateway ships in the runtime package; kept for compat, never binds)
+    runtime: 11740      # CODESYS Control SL runtime/device port, the IDE connects here
+    # gateway is INERT as of 2.2.0 and renders nowhere: not on the Service, not
+    # as a containerPort, not as a hostPort. The runtime ships no gateway and
+    # never binds 1217, and declaring it under hostNetwork made the scheduler
+    # reserve the node's 1217, which kept a real Edge Gateway off the node
+    # entirely. The key stays so an existing values file still parses and still
+    # means what it always did, which is nothing. Run
+    # codesys-edge-gateway-for-linux for a gateway that actually listens.
+    gateway: 1217
     opcua: 4840
     webvisu: 8080
 
@@ -143,9 +150,11 @@ network:
   #
   #   runtime  [CmpBlkDrvTcp] ListenPort       the IDE connects here
   #   opcua    [CmpOPCUAServer] NetworkPort
-  #   gateway  nothing: this runtime ships no gateway and never binds 1217, so
-  #            this only moves the declaration (the scheduler still counts it,
-  #            which is what stops an Edge Gateway landing on the same node).
+  #   gateway  INERT as of 2.2.0. It used to move the phantom 1217 declaration
+  #            out of the way so an Edge Gateway could schedule beside the
+  #            runtime. 2.2.0 stops declaring 1217 at all, which fixes that
+  #            properly instead of making every operator know the workaround.
+  #            The key stays so existing values files keep parsing.
   #
   # webvisu (8080) is deliberately not here. The web server only starts with a
   # WebVisu application running, and its port key could not be proven, so a

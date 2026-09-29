@@ -16,7 +16,7 @@
 * **The image is built in `Embernet-ai/codesys-packages`**, not here. Its `build-image.yml` builds linux/amd64 and linux/arm64 from `Dockerfile` (base `debian:bookworm-slim`) because that repo can read its own private release assets. This repo's `Dockerfile` and `.github/workflows/build-image.yml` still exist but do not produce the image the chart runs.
 * **One chart, two arches.** The image is a manifest index with linux/amd64 and linux/arm64, which is why `catalog.cattle.io/arch` is `amd64,arm64`. The arch annotation may only ever list what the image index actually carries.
 * **A seed initContainer** (`seed-workdir`) copies the image's baked `/var/opt/codesys` into the PVC with `cp -an`, once, and never clobbers PLC app or retain data after that. Mounting the PVC straight over that directory would hide the demo license and `bacstac.ini` the image ships.
-* **Ports.** 11740/tcp is the runtime port the IDE actually connects to. 4840/tcp is OPC UA. 8080/tcp is the CODESYS web server (WebVisu). 1217/tcp is published for compatibility and never binds, because the runtime package ships no gateway.
+* **Ports.** 11740/tcp is the runtime port the IDE actually connects to. 4840/tcp is OPC UA. 8080/tcp is the CODESYS web server (WebVisu). **1217/tcp is not published at all as of 2.2.0.** It used to be declared "for compatibility" even though the runtime ships no gateway and never binds it, and that was not harmless: under `hostNetwork` a declared port becomes a `hostPort`, the scheduler reserves the node's 1217, and a real `codesys-edge-gateway-for-linux` could never be placed on the same node. Measured on `crane-cp-01` on 2026-09-29, where `ss -ltn` showed nothing on 1217 while the Deployment reserved it. Want a gateway, run the gateway chart.
 * **8080 only listens when there is a WebVisu to serve.** The runtime starts its web server on demand. A fresh pod with no application listens on 4840 and 11740 and nothing on 8080 (measured on `codesys-control-sl:4.22.0.0`, 2026-09-27). So "8080 is dead" on an empty station is not a chart bug; test WebVisu with an application that has a visualization.
 * **Privileged, on purpose.** The runtime needs host device nodes for fieldbus, and no capability list grants `/dev`. The waiver comment sits directly above `privileged: true` in `values.yaml`.
 * **`hostNetwork` defaults to false** so more than one runtime can live on one node. Turning it on binds the node's real ports and a second instance will not schedule.
@@ -94,7 +94,7 @@ helm template test-release $C | grep 'embernet.ai/app-icon'
 
 - [ ] `network.hostNetwork: false` is the default in `values.yaml`
 - [ ] Default render has `dnsPolicy: ClusterFirst`, no `hostNetwork`, no `hostPort`
-- [ ] `--set network.hostNetwork=true` renders `hostNetwork: true`, `dnsPolicy: ClusterFirstWithHostNet`, and `hostPort` on 11740, 1217, 4840, and 8080 (plus 8081 with the sidecar)
+- [ ] `--set network.hostNetwork=true` renders `hostNetwork: true`, `dnsPolicy: ClusterFirstWithHostNet`, and `hostPort` on 11740, 4840, and 8080 (plus 8081 with the sidecar). **1217 must NOT appear.** The runtime ships no gateway and never binds it, and a declared hostPort is reserved by the scheduler whether or not anything listens, which kept a real Edge Gateway off the node. `helm template test-release $C --set network.hostNetwork=true | grep -c 1217` prints `0`.
 - [ ] Moved host ports move the runtime too: `--set network.hostNetwork=true --set network.hostPorts.runtime=11750 --set network.hostPorts.opcua=4850 --set network.udpPortIndex=2` renders containerPort equal to hostPort on 11750 and 4850, and the start script writes `ListenPort 11750`, `NetworkPort 4850`, and `DefaultPortIndex 2` into `CODESYSControl_User.cfg`. The Service keeps 11740 and 4840. With hostNetwork off the same flags change nothing.
 
 ```bash
@@ -108,7 +108,7 @@ helm template test-release $C --set network.hostNetwork=true | grep -E "hostNetw
 - [ ] Service `metadata.name` is `{{ .Release.Name }}`, not the fullname helper (`helm template test-release $C` must show `name: test-release` on the Service)
 - [ ] Service selector uses `codesys-control-for-linux-sl.selectorLabels`
 - [ ] `nodeSelector: {}` exists in `values.yaml` and reaches the Deployment (`--set 'nodeSelector.kubernetes\.io/hostname=n1'` renders it)
-- [ ] Service exposes runtime 11740, gateway 1217, opcua 4840, webvisu 8080, and proxy-http 8081 only with the sidecar
+- [ ] Service exposes runtime 11740, opcua 4840, webvisu 8080, and proxy-http 8081 only with the sidecar. Gateway 1217 is NOT published, because nothing behind it ever answered.
 - [ ] Deployment strategy is `Recreate` (RWO PVC plus optional host ports deadlock a RollingUpdate)
 
 ### 5. Sidecar Proxy

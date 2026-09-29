@@ -175,12 +175,15 @@ spec:
               {{- if .Values.network.hostNetwork }}
               hostPort: {{ $hp.runtime | default .Values.service.ports.runtime }}
               {{- end }}
-            - name: gateway
-              containerPort: {{ $hp.gateway | default .Values.service.ports.gateway }}
-              protocol: TCP
-              {{- if .Values.network.hostNetwork }}
-              hostPort: {{ $hp.gateway | default .Values.service.ports.gateway }}
-              {{- end }}
+            {{- /* NO gateway port. The runtime package ships no gateway and
+            never binds 1217, and declaring a port it does not listen on is not
+            free: under hostNetwork the declaration becomes a hostPort, the
+            SCHEDULER counts it, and a real CODESYS Edge Gateway can then never
+            land on the node. Measured on crane-cp-01 2026-09-29, `ss -ltn` showed
+            nothing on 1217 while the Deployment declared hostPort 1217, and the
+            gateway pod had nowhere to go. Same reasoning the Edge Gateway chart
+            used in 2.2.0 when it stopped publishing webvisu and opcua: a port
+            nothing answers on is worse than no port at all. */}}
             - name: opcua
               containerPort: {{ $hp.opcua | default .Values.service.ports.opcua }}
               protocol: TCP

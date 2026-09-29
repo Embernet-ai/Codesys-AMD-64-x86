@@ -2,7 +2,7 @@ apiVersion: v2
 name: codesys-control-for-linux-sl
 description: CODESYS Control for Linux SL, the IEC 61131-3 PLC runtime
 type: application
-version: 2.1.0
+version: 2.2.0
 appVersion: "4.22.0.0"
 keywords:
   - codesys

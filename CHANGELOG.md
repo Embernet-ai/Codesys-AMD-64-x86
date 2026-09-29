@@ -4,6 +4,35 @@ All notable changes to the CODESYS Control SL (AMD64/x86) Helm chart.
 
 ---
 
+## [2.2.0] (2026-09-29), chart `codesys-control-for-linux-sl`
+
+### Fixed
+
+- **The runtime no longer squats port 1217.** This chart declared a `gateway`
+  port on 1217 that the runtime has never bound, because the Control SL package
+  ships no gateway. That was written off as harmless compatibility. It was not.
+  Under `hostNetwork` a declared port becomes a `hostPort`, and the scheduler
+  reserves a hostPort whether or not a process ever listens on it, so the node's
+  1217 was held by a socket that did not exist and a real
+  `codesys-edge-gateway-for-linux` could never be placed beside the runtime.
+  Found on `crane-cp-01`, where `ss -ltn` showed nothing on 1217 while the
+  Deployment reserved it and the gateway the CODESYS IDE connects to had nowhere
+  to go. 1217 is now rendered nowhere: not as a containerPort, not as a
+  hostPort, and not on the Service, which had been advertising a port that
+  refused every connection. Same call the Edge Gateway chart made in 2.2.0 when
+  it dropped WebVisu and OPC UA from its own Service.
+
+  2.1.0 shipped `network.hostPorts.gateway` to move the phantom out of the way.
+  That worked, but it made every operator learn a workaround for a port that
+  should never have been declared, so it is fixed at the source instead.
+
+  `service.ports.gateway` and `network.hostPorts.gateway` both stay as keys and
+  are inert. An existing values file that sets either still parses and still
+  means what it always did, which is nothing. Nothing else moves: 11740, 4840
+  and 8080 render exactly as they did in 2.1.0, and with the gateway key out of
+  the host-port helper a pod that sets no other port knob goes back to running
+  the image ENTRYPOINT verbatim instead of the config wrapper.
+
 ## [2.1.0] (2026-09-27), chart `codesys-control-for-linux-sl`
 
 ### Added
