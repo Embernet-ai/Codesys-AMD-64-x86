@@ -13,7 +13,7 @@ entries:
       catalog.cattle.io/upstream-version: 4.20.0.0
     apiVersion: v2
     appVersion: 4.22.0.0
-    created: "2026-09-28T20:13:47.51488149Z"
+    created: "2026-09-29T19:25:10.329725519Z"
     description: CODESYS Control SL Runtime for Linux x86/AMD64 — IEC 61131-3 PLC
       (prebuilt image)
     digest: 94622e76ea994fbc081f61a43f88a585ce742f65a987da14bf2dbea651d04e96
@@ -50,9 +50,9 @@ entries:
       catalog.cattle.io/upstream-version: 4.22.0.0
     apiVersion: v2
     appVersion: 4.22.0.0
-    created: "2026-09-28T20:13:47.516417425Z"
+    created: "2026-09-29T19:25:10.331321075Z"
     description: CODESYS Control for Linux SL, the IEC 61131-3 PLC runtime
-    digest: 35df137fa748e398a968f83d837982c6a8ad29f5b78f8e910c8960bdc47c93af
+    digest: 726d7b20df1180a7198b8d18b841cfbda0fc23e0f43ca81469baa5cd91892b2a
     home: https://github.com/Embernet-ai/Codesys-AMD-64-x86
     icon: https://embernet-ai.github.io/Codesys-AMD-64-x86/icon.png
     keywords:
@@ -71,8 +71,8 @@ entries:
     name: codesys-control-for-linux-sl
     type: application
     urls:
-    - https://embernet-ai.github.io/Codesys-AMD-64-x86/codesys-control-for-linux-sl-2.1.0.tgz
-    version: 2.1.0
+    - https://embernet-ai.github.io/Codesys-AMD-64-x86/codesys-control-for-linux-sl-2.2.0.tgz
+    version: 2.2.0
   - annotations:
       catalog.cattle.io/arch: amd64,arm64
       catalog.cattle.io/certified: partner
@@ -85,7 +85,7 @@ entries:
       catalog.cattle.io/upstream-version: 4.20.0.0
     apiVersion: v2
     appVersion: 4.22.0.0
-    created: "2026-09-28T20:13:47.515646072Z"
+    created: "2026-09-29T19:25:10.330478448Z"
     description: CODESYS Control for Linux SL, the IEC 61131-3 PLC runtime
     digest: 615f480c6badfb254060e0ebfa56068ecd1fcbf8e466c05ceaf44837683fa4b5
     home: https://github.com/Embernet-ai/Codesys-AMD-64-x86
@@ -108,4 +108,4 @@ entries:
     urls:
     - https://embernet-ai.github.io/Codesys-AMD-64-x86/codesys-control-for-linux-sl-2.0.4.tgz
     version: 2.0.4
-generated: "2026-09-28T20:13:47.51393904Z"
+generated: "2026-09-29T19:25:10.328838009Z"
