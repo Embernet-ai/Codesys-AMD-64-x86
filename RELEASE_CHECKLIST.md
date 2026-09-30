@@ -138,7 +138,7 @@ Every one of these, every release. Paste the output in the PR or the commit body
 - [ ] `helm template test-release $C --set persistence.enabled=false` renders, with `emptyDir: {}` and no PersistentVolumeClaim
 - [ ] `helm template test-release $C --set runtimeConfig.registerBootApplication=true --set runtimeConfig.disableUserMgmtEnforce=true` renders and the command ends in `exec /usr/local/bin/entrypoint.sh`
 - [ ] The publish workflow's own gates pass locally: chart directory, `name:`, and `catalog.cattle.io/release-name` all agree, and no chart file has a CR byte (`find charts -type f -exec sh -c 'tr -cd "\r" < "$1" | wc -c' _ {} \;` prints only zeros)
-- [ ] App invariants pass the way `.github/workflows/app-invariants.yml` runs them: `python .ci/test-check-app-invariants.py` (63/63), `python .ci/test-render-charts.py` (10/10, needs helm), `python .ci/render-charts.py --out .rendered .` (every chart, with defaults and with every `examples/` and `ci/` values file), then `python .ci/check-app-invariants.py charts .rendered` (0 violations, and the `values.yaml` privileged waiver carried into the render and listed as in force)
+- [ ] App invariants pass the way `.github/workflows/app-invariants.yml` runs them: `python .ci/test-check-app-invariants.py` (65/65), `python .ci/test-render-charts.py` (10/10, needs helm), `python .ci/render-charts.py --out .rendered .` (every chart, with defaults and with every `examples/` and `ci/` values file), then `python .ci/check-app-invariants.py charts .rendered` (0 violations, and the `values.yaml` privileged waiver carried into the render and listed as in force)
 
 ---
 
