@@ -8,8 +8,9 @@
 # image + exec).
 #
 # Build arg CODESYS_PACKAGE_URL points at a public .package release on
-# github.com/Embernet-ai/codesys-linux-x86; the GH Actions workflow at
-# .github/workflows/build-image.yml pins the URL per release tag.
+# github.com/Embernet-ai/codesys-linux-x86, which no longer exists. Nothing
+# builds this file any more; the image the chart runs is built in
+# Embernet-ai/codesys-packages.
 # =============================================================================
 ARG BASE_IMAGE=debian:bookworm-slim
 FROM ${BASE_IMAGE} AS build
