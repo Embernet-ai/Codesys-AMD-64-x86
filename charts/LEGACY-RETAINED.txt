@@ -42,3 +42,8 @@ codesys-app-1.6.0.tgz
 # A release adds a version, it doesn't take one away. When the next release
 # ships, the version it replaces goes here too.
 codesys-control-for-linux-sl-2.0.4.tgz
+
+# Retained 2026-11-04: the version 2.3.0 replaces. The six live UT3 runtime
+# releases (ut3-codesys-cp01 to en0003) were installed at 2.2.0, and a release
+# adds a version, it doesn't take one away.
+codesys-control-for-linux-sl-2.2.0.tgz
