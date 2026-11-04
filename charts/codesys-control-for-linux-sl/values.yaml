@@ -261,9 +261,24 @@ sidecarProxy:
 # They were once applied by hand with kubectl patch and were never in the chart,
 # which left the live Deployment two revisions ahead of the Helm release and one
 # upgrade away from going dark.
+#
+#   serialPortsStandard      Writes CODESYS's own serial numbering into [SysCom] at every
+#                            start: COM 10..19 are /dev/ttyS0..9, COM 20..29 are
+#                            /dev/ttyUSB0..9, COM 30..39 are /dev/ttyACM0..9. The runtime opens
+#                            serial port N from `Linux.Devicefile.N` and nothing else, and the
+#                            image ships every one of those lines commented out, so without
+#                            this (or serialPorts) no COM number has a device file behind it.
+#                            Needs a privileged pod (the default) to see the host's /dev.
+#
+#   serialPorts              COM number to device file, applied after the standard map, for a
+#                            box whose adapters need a stable name:
+#                              serialPorts:
+#                                "21": /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0
 runtimeConfig:
   registerBootApplication: false
   disableUserMgmtEnforce: false
+  serialPortsStandard: false
+  serialPorts: {}
 
 # ==================== Environment Variables ====================
 env: []

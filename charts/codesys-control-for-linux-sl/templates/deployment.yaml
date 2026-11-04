@@ -86,7 +86,8 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if or .Values.runtimeConfig.registerBootApplication .Values.runtimeConfig.disableUserMgmtEnforce $hp }}
+          {{- $serial := or .Values.runtimeConfig.serialPortsStandard .Values.runtimeConfig.serialPorts }}
+          {{- if or .Values.runtimeConfig.registerBootApplication .Values.runtimeConfig.disableUserMgmtEnforce $hp $serial }}
           # Runtime config bootstrap.
           #
           # /etc/codesyscontrol/ lives in the IMAGE, not on the PVC, and an
@@ -146,6 +147,33 @@ spec:
               # single anonymous endpoint and answers ActivateSession with
               # BadUserAccessDenied, so no client can ever read the station.
               ensure CmpUserMgr SECURITY.UserMgmtEnforce=NO
+              {{- end }}
+              {{- if $serial }}
+              # runtimeConfig.serialPortsStandard / serialPorts: the runtime opens serial
+              # port N from [SysCom] Linux.Devicefile.N and from nothing else. The image
+              # ships those lines commented out, so with no mapping a SysComOpen for any
+              # COM number has no device file behind it. Same section rule as above: the
+              # keys go into the first [SysCom], through setkey.
+              {{- include "codesys.setkey" . | nindent 14 }}
+              {{- if .Values.runtimeConfig.serialPortsStandard }}
+              # CODESYS's own convention, the one its shipped cfg lists: COM 10..19 are
+              # /dev/ttyS0..9, COM 20..29 are /dev/ttyUSB0..9, and COM 30..39 are
+              # /dev/ttyACM0..9 (the same pattern, for CDC-ACM adapters).
+              i=0
+              while [ "$i" -le 9 ]; do
+                setkey "$CFG" SysCom "Linux.Devicefile.$((10 + i))" "/dev/ttyS$i"
+                setkey "$CFG" SysCom "Linux.Devicefile.$((20 + i))" "/dev/ttyUSB$i"
+                setkey "$CFG" SysCom "Linux.Devicefile.$((30 + i))" "/dev/ttyACM$i"
+                i=$((i + 1))
+              done
+              {{- end }}
+              {{- /* serialPorts applies after the standard map, so it can move one COM number
+                     (a stable /dev/serial/by-id path, a port on a PCIe card) and leave the rest. */}}
+              {{- range $n, $dev := .Values.runtimeConfig.serialPorts }}
+              {{- if not (regexMatch "^[0-9]{1,5}$" (toString $n)) }}{{ fail (printf "runtimeConfig.serialPorts key %q is not a COM port number" (toString $n)) }}{{ end }}
+              {{- if not (regexMatch "^/dev/[A-Za-z0-9_./:@+-]+$" (toString $dev)) }}{{ fail (printf "runtimeConfig.serialPorts[%s] %q is not a /dev path" (toString $n) (toString $dev)) }}{{ end }}
+              setkey "$CFG" SysCom "Linux.Devicefile.{{ $n }}" {{ toString $dev | squote }}
+              {{- end }}
               {{- end }}
               {{- if $hp }}
               # network.hostPorts / network.udpPortIndex: under hostNetwork the

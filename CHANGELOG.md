@@ -4,6 +4,25 @@ All notable changes to the CODESYS Control SL (AMD64/x86) Helm chart.
 
 ---
 
+## [2.4.0] (2026-11-04), chart `codesys-control-for-linux-sl`
+
+### Added
+
+- **`runtimeConfig.serialPortsStandard` and `runtimeConfig.serialPorts` (both default off and empty).** The
+  runtime opens serial port N from `[SysCom] Linux.Devicefile.N` and from nothing else, and the 4.22 image
+  ships every one of those lines commented out, so a program that opens a COM number gets whatever the
+  runtime's built-in default names (measured on `codesys-control-sl:4.22.0.0`: port 1 tries `/dev/ttyS0`,
+  port n tries `/dev/ttyS<n-1>`), never the USB adapter or the other onboard port the step asked for.
+  `serialPortsStandard: true` writes CODESYS's own numbering, the one the shipped cfg lists in comments, into
+  the first `[SysCom]` at every start: COM 10..19 are `/dev/ttyS0..9`, COM 20..29 are `/dev/ttyUSB0..9`, and
+  COM 30..39 are `/dev/ttyACM0..9`. `serialPorts` (COM number to `/dev/` path) is applied after it, for a box
+  that needs a stable name such as `/dev/serial/by-id/...`; a key that is not a number or a value that is not
+  a `/dev/` path fails the render. Same `setkey` as the other cfg edits, so the keys land inside the first
+  copy of the section. A release that sets neither renders exactly as 2.3.0 did. `appVersion` and the image
+  are unchanged.
+
+---
+
 ## [2.3.0] (2026-11-04), chart `codesys-control-for-linux-sl`
 
 ### Added
