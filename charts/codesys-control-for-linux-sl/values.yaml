@@ -136,6 +136,13 @@ network:
   # <release>.<ns>.svc.cluster.local:4840. Set true ONLY for a single-instance
   # node that needs raw host-IP access and accept it cannot be scaled per node.
   hostNetwork: false
+  # Share the node's IPC namespace, and with it the node's /dev/shm. Off by default so
+  # nothing else changes. Turn it on only for a runtime that pairs with a Safe Control
+  # (codesys-virtual-safe-control-sl, which creates CODESYSSafeControl_IO and its five
+  # sibling segments as named POSIX shared memory and also needs hostIPC), and only on a
+  # node where that Safe Control runs. Any pod on the node with hostIPC sees the same
+  # segments, so do not turn it on for a runtime that has no use for them.
+  hostIPC: false
   extraPorts: []
   # Where each socket sits on the NODE when hostNetwork is on, so a second
   # runtime can share the node without a port fight. Empty keeps the port in
