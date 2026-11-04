@@ -4,6 +4,19 @@ All notable changes to the CODESYS Control SL (AMD64/x86) Helm chart.
 
 ---
 
+## [2.3.0] (2026-11-04), chart `codesys-control-for-linux-sl`
+
+### Added
+
+- **`network.hostIPC` (default `false`).** When true the pod runs with `hostIPC: true`, so it shares
+  the node's /dev/shm. A runtime that pairs with `codesys-virtual-safe-control-sl` needs it: the Safe
+  Control talks to the runtime over named POSIX shared memory (`CODESYSSafeControl_IO` and five
+  siblings), and a runtime in its own IPC namespace logs `Io Shm was not created! Safety PLC is not
+  responding yet` and never reaches the Safe Control. Default off, so a release that does not set it
+  renders exactly as 2.2.0 did. `appVersion` and the image are unchanged.
+
+---
+
 ## [2.2.0] (2026-09-29), chart `codesys-control-for-linux-sl`
 
 ### Fixed
