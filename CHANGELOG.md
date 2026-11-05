@@ -4,6 +4,23 @@ All notable changes to the CODESYS Control SL (AMD64/x86) Helm chart.
 
 ---
 
+## [2.5.0] (2026-11-05), chart `codesys-control-for-linux-sl`
+
+### Added
+
+- **`runtimeConfig.ethernetInterfaceFilter` (list of NIC names, default empty).** Writes `[SysEthernet]
+  Linux.InterfaceFilter.0`, `.1`, ... into the first `[SysEthernet]` at every start, through the same `setkey` as
+  the other cfg edits. The runtime's raw Ethernet layer, which an EtherCAT master opens its port through, sees
+  every NIC of the node under `hostNetwork`; the filter is an allow-list. Measured on
+  `codesys-control-sl:4.22.0.0` with an I/O application whose master is set to a NIC named `enp3s0`: with a NIC
+  of that name present and no filter the master opened it and sent 291 EtherCAT frames in the first minute; with
+  `Linux.InterfaceFilter.0=enp4s0` it logged `Networkadapter could not be opened` and the NIC saw 5 packets; with
+  no NIC of that name it logged `Networkadapter could not be found`. Either way the rest of the application kept
+  running. A name that is not a Linux interface name fails the render. A release that leaves it empty renders
+  exactly as 2.4.0 did. `appVersion` and the image are unchanged.
+
+---
+
 ## [2.4.0] (2026-11-04), chart `codesys-control-for-linux-sl`
 
 ### Added
