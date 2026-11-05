@@ -87,7 +87,8 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- $serial := or .Values.runtimeConfig.serialPortsStandard .Values.runtimeConfig.serialPorts }}
-          {{- if or .Values.runtimeConfig.registerBootApplication .Values.runtimeConfig.disableUserMgmtEnforce $hp $serial }}
+          {{- $ethf := .Values.runtimeConfig.ethernetInterfaceFilter }}
+          {{- if or .Values.runtimeConfig.registerBootApplication .Values.runtimeConfig.disableUserMgmtEnforce $hp $serial $ethf }}
           # Runtime config bootstrap.
           #
           # /etc/codesyscontrol/ lives in the IMAGE, not on the PVC, and an
@@ -173,6 +174,20 @@ spec:
               {{- if not (regexMatch "^[0-9]{1,5}$" (toString $n)) }}{{ fail (printf "runtimeConfig.serialPorts key %q is not a COM port number" (toString $n)) }}{{ end }}
               {{- if not (regexMatch "^/dev/[A-Za-z0-9_./:@+-]+$" (toString $dev)) }}{{ fail (printf "runtimeConfig.serialPorts[%s] %q is not a /dev path" (toString $n) (toString $dev)) }}{{ end }}
               setkey "$CFG" SysCom "Linux.Devicefile.{{ $n }}" {{ toString $dev | squote }}
+              {{- end }}
+              {{- end }}
+              {{- if $ethf }}
+              # runtimeConfig.ethernetInterfaceFilter: the runtime's raw Ethernet layer (SysEthernet,
+              # what an EtherCAT master opens a port through) sees every NIC of the node under
+              # hostNetwork. [SysEthernet] Linux.InterfaceFilter.N is an allow-list: a NIC not
+              # listed cannot be opened by name, so a master configured for it logs "Networkadapter
+              # could not be opened" and sends nothing. Proved on codesys-control-sl:4.22.0.0 with a
+              # NIC named enp3s0 present and the filter naming another: 291 EtherCAT frames without
+              # the line, 5 packets with it. Same section rule as above: through setkey.
+              {{- include "codesys.setkey" . | nindent 14 }}
+              {{- range $i, $nic := $ethf }}
+              {{- if not (regexMatch "^[A-Za-z0-9_.:@-]{1,15}$" (toString $nic)) }}{{ fail (printf "runtimeConfig.ethernetInterfaceFilter[%d] %q is not a Linux interface name" $i (toString $nic)) }}{{ end }}
+              setkey "$CFG" SysEthernet "Linux.InterfaceFilter.{{ $i }}" {{ toString $nic | squote }}
               {{- end }}
               {{- end }}
               {{- if $hp }}

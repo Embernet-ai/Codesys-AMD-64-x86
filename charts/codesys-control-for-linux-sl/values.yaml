@@ -274,11 +274,20 @@ sidecarProxy:
 #                            box whose adapters need a stable name:
 #                              serialPorts:
 #                                "21": /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0
+#
+#   ethernetInterfaceFilter  List of NIC names the runtime's raw Ethernet layer (SysEthernet) may open, written
+#                            as [SysEthernet] Linux.InterfaceFilter.0, .1, ... at every start. An allow-list:
+#                            a NIC not named cannot be opened by name, so an EtherCAT master configured for it
+#                            logs "Networkadapter could not be opened" and sends no frame. Empty (the default)
+#                            leaves every NIC visible, as before. For a box where the master's NIC name also
+#                            exists as a real IP uplink:
+#                              ethernetInterfaceFilter: [enp3s0]   # only on the box whose enp3s0 is the coupler NIC
 runtimeConfig:
   registerBootApplication: false
   disableUserMgmtEnforce: false
   serialPortsStandard: false
   serialPorts: {}
+  ethernetInterfaceFilter: []
 
 # ==================== Environment Variables ====================
 env: []
