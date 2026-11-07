@@ -93,7 +93,7 @@ helm template test-release $C | grep 'embernet.ai/app-icon'
 ### 3. Network Configuration
 
 - [ ] `network.hostNetwork: false` is the default in `values.yaml`
-- [ ] `network.hostIPC: false` is the default, the default render has no `hostIPC`, and `--set network.hostIPC=true` renders `hostIPC: true` (the runtime shares the node's /dev/shm with a Safe Control pod)
+- [ ] `network.hostIPC: true` is the default, the default render has `hostIPC: true`, and `--set network.hostIPC=false` renders no `hostIPC` (the runtime shares the node's /dev/shm with a Safe Control pod, so a Store install pairs with no hand edit)
 - [ ] Default render has `dnsPolicy: ClusterFirst`, no `hostNetwork`, no `hostPort`
 - [ ] `--set network.hostNetwork=true` renders `hostNetwork: true`, `dnsPolicy: ClusterFirstWithHostNet`, and `hostPort` on 11740, 4840, and 8080 (plus 8081 with the sidecar). **1217 must NOT appear.** The runtime ships no gateway and never binds it, and a declared hostPort is reserved by the scheduler whether or not anything listens, which kept a real Edge Gateway off the node. `helm template test-release $C --set network.hostNetwork=true | grep -c 1217` prints `0`.
 - [ ] Moved host ports move the runtime too: `--set network.hostNetwork=true --set network.hostPorts.runtime=11750 --set network.hostPorts.opcua=4850 --set network.udpPortIndex=2` renders containerPort equal to hostPort on 11750 and 4850, and the start script writes `ListenPort 11750`, `NetworkPort 4850`, and `DefaultPortIndex 2` into `CODESYSControl_User.cfg`. The Service keeps 11740 and 4840. With hostNetwork off the same flags change nothing.
