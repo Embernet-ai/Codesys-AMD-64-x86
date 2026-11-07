@@ -4,6 +4,21 @@ All notable changes to the CODESYS Control SL (AMD64/x86) Helm chart.
 
 ---
 
+## [2.6.0] (2026-11-07), chart `codesys-control-for-linux-sl`
+
+### Changed
+
+- **`network.hostIPC` now defaults to true.** CODESYS Virtual Safe Control SL talks to the standard PLC over
+  named POSIX shared memory (`CODESYSSafeControl_IO` and five sibling segments), which does not cross a pod
+  boundary, and the vendor data sheet lists "Shared memory" as the link to the standard control. With the
+  default off, a Control SL and a Safe Control both installed from the Store never paired without a hand edit
+  of the runtime's release. Every app that needs a privilege ships with it in its defaults, so the runtime now
+  shares the node's IPC namespace from the start. Set `network.hostIPC=false` for a runtime that never pairs.
+  A release that already sets `network.hostIPC` renders exactly as it did. The pod was already privileged, so
+  this adds no privilege it did not have. `appVersion` and the image are unchanged.
+
+---
+
 ## [2.5.0] (2026-11-05), chart `codesys-control-for-linux-sl`
 
 ### Added

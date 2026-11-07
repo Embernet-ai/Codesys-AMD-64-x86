@@ -136,13 +136,16 @@ network:
   # <release>.<ns>.svc.cluster.local:4840. Set true ONLY for a single-instance
   # node that needs raw host-IP access and accept it cannot be scaled per node.
   hostNetwork: false
-  # Share the node's IPC namespace, and with it the node's /dev/shm. Off by default so
-  # nothing else changes. Turn it on only for a runtime that pairs with a Safe Control
-  # (codesys-virtual-safe-control-sl, which creates CODESYSSafeControl_IO and its five
-  # sibling segments as named POSIX shared memory and also needs hostIPC), and only on a
-  # node where that Safe Control runs. Any pod on the node with hostIPC sees the same
-  # segments, so do not turn it on for a runtime that has no use for them.
-  hostIPC: false
+  # Share the node's IPC namespace, and with it the node's /dev/shm. ON by default.
+  # CODESYS Virtual Safe Control SL talks to the standard PLC over named POSIX shared
+  # memory (CODESYSSafeControl_IO and its five sibling segments), and that does not
+  # cross a pod boundary on its own. A Store install of a Control SL beside a Store
+  # install of Safe Control has to pair with no hand edit, so the runtime shares the
+  # node's IPC namespace from the start. Safe Control pairs only with a runtime on its
+  # own node, and any pod on the node with hostIPC sees the same segments. Set it
+  # false for a runtime that will never pair with a Safe Control and that shares its
+  # node with pods that should not see them. The pod is privileged either way.
+  hostIPC: true
   extraPorts: []
   # Where each socket sits on the NODE when hostNetwork is on, so a second
   # runtime can share the node without a port fight. Empty keeps the port in
