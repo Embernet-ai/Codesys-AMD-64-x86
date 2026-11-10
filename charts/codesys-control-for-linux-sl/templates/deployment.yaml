@@ -88,7 +88,8 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- $serial := or .Values.runtimeConfig.serialPortsStandard .Values.runtimeConfig.serialPorts }}
           {{- $ethf := .Values.runtimeConfig.ethernetInterfaceFilter }}
-          {{- if or .Values.runtimeConfig.registerBootApplication .Values.runtimeConfig.disableUserMgmtEnforce $hp $serial $ethf }}
+          {{- $logDir := .Values.runtimeConfig.logDir }}
+          {{- if or .Values.runtimeConfig.registerBootApplication .Values.runtimeConfig.disableUserMgmtEnforce $hp $serial $ethf $logDir }}
           # Runtime config bootstrap.
           #
           # /etc/codesyscontrol/ lives in the IMAGE, not on the PVC, and an
@@ -189,6 +190,22 @@ spec:
               {{- if not (regexMatch "^[A-Za-z0-9_.:@-]{1,15}$" (toString $nic)) }}{{ fail (printf "runtimeConfig.ethernetInterfaceFilter[%d] %q is not a Linux interface name" $i (toString $nic)) }}{{ end }}
               setkey "$CFG" SysEthernet "Linux.InterfaceFilter.{{ $i }}" {{ toString $nic | squote }}
               {{- end }}
+              {{- end }}
+              {{- if $logDir }}
+              {{- if not (regexMatch "^[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*$" (toString $logDir)) }}{{ fail (printf "runtimeConfig.logDir %q must be a relative folder name under /var/opt/codesys, letters, digits, _ and - only, no dots" (toString $logDir)) }}{{ end }}
+              # runtimeConfig.logDir: the runtime's log file goes to <logDir>/codesyscontrol.log (and its rotated
+              # copies beside it) instead of the volume root, so a reader that must see logs and nothing else on
+              # the volume (certificates, the license container, the application) can be given that one folder.
+              # The key is [CmpLog] Logger.0.Name. It is set in the BASE /etc/codesyscontrol/CODESYSControl.cfg
+              # and NOT in CODESYSControl_User.cfg, on purpose: the base file already defines Logger.0.Name
+              # (codesyscontrol.log) and the runtime keeps that definition, so the same line in the User file,
+              # which is where the other settings here go, is ignored. Proved on codesys-control-sl:4.22.0.0:
+              # Name in the User file left the log at the volume root, Name in the base file moved it. The
+              # runtime creates the folder itself, relative names resolve against the working directory
+              # /var/opt/codesys (the PVC), and an absolute path also works; only the relative form is allowed here.
+              # setkey rewrites the base file in place with cat, so its owner and mode stay.
+              {{- include "codesys.setkey" . | nindent 14 }}
+              setkey /etc/codesyscontrol/CODESYSControl.cfg CmpLog Logger.0.Name {{ printf "%s/codesyscontrol.log" (toString $logDir) | squote }}
               {{- end }}
               {{- if $hp }}
               # network.hostPorts / network.udpPortIndex: under hostNetwork the
