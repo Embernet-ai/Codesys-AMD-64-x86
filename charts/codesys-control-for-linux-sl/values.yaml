@@ -291,6 +291,12 @@ runtimeConfig:
   serialPortsStandard: false
   serialPorts: {}
   ethernetInterfaceFilter: []
+  # logDir: "" (default) leaves the runtime's log at the volume root, as before. A folder name, e.g. logs,
+  # moves it to <logDir>/codesyscontrol.log on the PVC (the runtime creates the folder), so a reader that
+  # must see the logs and nothing else on the volume can be given that one folder. Relative to
+  # /var/opt/codesys, letters, digits, _ and - only. Edits the base CODESYSControl.cfg, not the User file:
+  # see the comment in templates/deployment.yaml. The runtime restarts to pick it up.
+  logDir: ""
 
 # ==================== Environment Variables ====================
 env: []

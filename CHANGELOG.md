@@ -4,6 +4,23 @@ All notable changes to the CODESYS Control SL (AMD64/x86) Helm chart.
 
 ---
 
+## [2.7.0] (2026-11-11), chart `codesys-control-for-linux-sl`
+
+### Added
+
+- **`runtimeConfig.logDir` (folder name, default empty).** Moves the runtime's log, `codesyscontrol.log` and its
+  rotated copies, from the volume root into `<logDir>/` on the PVC. The key is `[CmpLog] Logger.0.Name`, and it
+  is written into the base `/etc/codesyscontrol/CODESYSControl.cfg` at every start, through the same `setkey`
+  as the other cfg edits. It is NOT written into `CODESYSControl_User.cfg`: the base file already defines
+  `Logger.0.Name`, the runtime keeps that definition, and a second one in the User file is ignored (proved on
+  `codesys-control-sl:4.22.0.0`: Name in the User file left the log at the volume root, in the base file it
+  moved). The runtime creates the folder itself. Why: a reader that has to see the logs and nothing else (the
+  PLC runtime volume also holds the certificates, the license container and the application) can be given
+  that one folder, with no change to the files on the volume. Default empty renders exactly as before.
+  `appVersion` and the image are unchanged.
+
+---
+
 ## [2.6.0] (2026-11-07), chart `codesys-control-for-linux-sl`
 
 ### Changed
