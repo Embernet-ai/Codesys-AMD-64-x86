@@ -73,6 +73,10 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /seed
+          {{- if eq (toString .Values.qosClass) "guaranteed" }}
+          resources:
+            {{- include "codesys-control-for-linux-sl.resources" (dict "qos" .Values.qosClass "res" .Values.seedResources) | nindent 12 }}
+          {{- end }}
 
       containers:
         # Container name comes from the .name helper, not .Chart.Name directly,
@@ -263,7 +267,7 @@ spec:
             - name: data
               mountPath: {{ .Values.persistence.path }}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- include "codesys-control-for-linux-sl.resources" (dict "qos" .Values.qosClass "res" .Values.resources) | nindent 12 }}
           {{- with .Values.env }}
           env:
             {{- toYaml . | nindent 12 }}
@@ -297,7 +301,7 @@ spec:
             - name: sidecar-proxy-run
               mountPath: /var/run
           resources:
-            {{- toYaml .Values.sidecarProxy.resources | nindent 12 }}
+            {{- include "codesys-control-for-linux-sl.resources" (dict "qos" .Values.qosClass "res" .Values.sidecarProxy.resources) | nindent 12 }}
           securityContext:
             {{- toYaml .Values.sidecarProxy.securityContext | nindent 12 }}
           livenessProbe:

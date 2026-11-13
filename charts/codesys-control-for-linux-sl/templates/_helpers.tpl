@@ -127,3 +127,25 @@ setkey() {
     }' "$1" > "$1.setkey" && cat "$1.setkey" > "$1" && rm -f "$1.setkey"
 }
 {{- end }}
+
+{{/*
+Resources for a container. qosClass burstable (the default) renders resources exactly as
+given. guaranteed sets requests equal to limits on every container of the pod (the runtime,
+the seed init container and the sidecar proxy), which makes the pod Guaranteed QoS: a real
+time PLC then never shares CPU or memory pressure as a Burstable pod and is not evicted
+first. It needs limits.cpu and limits.memory on each. Called with a dict of qos and res.
+*/}}
+{{- define "codesys-control-for-linux-sl.resources" -}}
+{{- $res := .res | default dict -}}
+{{- if eq (toString .qos) "burstable" -}}
+{{- toYaml $res -}}
+{{- else if eq (toString .qos) "guaranteed" -}}
+{{- $lim := $res.limits | default dict -}}
+{{- if not (and $lim.cpu $lim.memory) -}}
+{{- fail "qosClass guaranteed needs limits.cpu and limits.memory on resources, seedResources and sidecarProxy.resources (requests are set equal to the limits); set them, or qosClass: burstable" -}}
+{{- end -}}
+{{- toYaml (dict "limits" $lim "requests" $lim) -}}
+{{- else -}}
+{{- fail (printf "qosClass must be guaranteed or burstable, got %q" (toString .qos)) -}}
+{{- end -}}
+{{- end }}

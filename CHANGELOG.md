@@ -4,6 +4,14 @@ All notable changes to the CODESYS Control SL (AMD64/x86) Helm chart.
 
 ---
 
+## [2.8.0] (2026-11-13), chart `codesys-control-for-linux-sl`
+
+### Added
+
+- **`qosClass` (`burstable` default, or `guaranteed`) and `seedResources`.** `guaranteed` sets requests equal to limits on the runtime, the `seed-workdir` init container and the sidecar proxy, so the pod is Guaranteed QoS and the kubelet does not evict it ahead of Burstable pods. An I/O or safety PLC runtime picks it from the Store's deploy options. It needs `limits.cpu` and `limits.memory` on `resources`, `seedResources` and `sidecarProxy.resources`, and the render fails with that sentence when one is missing. The default render is unchanged (the seed container still carries no resources). `appVersion` and the image are unchanged.
+
+---
+
 ## [2.7.0] (2026-11-11), chart `codesys-control-for-linux-sl`
 
 ### Added

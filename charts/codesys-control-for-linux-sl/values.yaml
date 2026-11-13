@@ -73,6 +73,14 @@ imagePullSecrets: []
 replicaCount: 1
 
 # ==================== Resource Limits ====================
+# qosClass burstable (the default) renders resources as written. guaranteed sets requests equal to limits on the runtime, the seed init container
+# (seedResources) and the sidecar proxy, so the pod is Guaranteed QoS and is not evicted ahead of Burstable pods. Pick it for an I/O or safety PLC
+# and size the limits from use: a runtime that holds large buffers needs the memory limit above the live use, or it is OOMKilled.
+qosClass: burstable
+seedResources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
 resources:
   # PLC runtimes are real-time critical — do not under-provision
   limits:
