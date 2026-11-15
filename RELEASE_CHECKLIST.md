@@ -106,6 +106,7 @@ helm template test-release $C --set network.hostNetwork=true | grep -E "hostNetw
 ### 4. Service Configuration
 
 - [ ] Service type is `ClusterIP` by default
+- [ ] The default render tolerates a lost control-plane link, with no `tolerationSeconds` (a runtime that is evicted from an unreachable node stops the plant's PLC): `helm template test-release $C | grep -A8 'tolerations:'` shows `node.kubernetes.io/unreachable` and `node.kubernetes.io/not-ready`, both `NoExecute`, and `helm template test-release $C | grep -c tolerationSeconds` prints 0. `--set tolerations=null` renders none.
 - [ ] Service `metadata.name` is `{{ .Release.Name }}`, not the fullname helper (`helm template test-release $C` must show `name: test-release` on the Service)
 - [ ] Service selector uses `codesys-control-for-linux-sl.selectorLabels`
 - [ ] `nodeSelector: {}` exists in `values.yaml` and reaches the Deployment (`--set 'nodeSelector.kubernetes\.io/hostname=n1'` renders it)

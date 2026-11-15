@@ -80,6 +80,20 @@ All notable changes to the CODESYS Control SL (AMD64/x86) Helm chart.
 
 ---
 
+## [2.9.0] (2026-11-14), chart `codesys-control-for-linux-sl`
+
+### Fixed
+
+- **The runtime keeps running when its node loses the link to the control plane.** `tolerations` defaulted
+  to empty, so the cluster's default (300 s, or 30 s where it is set shorter) evicted the runtime from an
+  unreachable node while a HotLoop beside it, which tolerates the taint, kept running. The chart now ships
+  the `node.kubernetes.io/unreachable` and `not-ready` NoExecute tolerations with no `tolerationSeconds`.
+  Proven by cutting a v1.35.7 node's link with this chart and HotLoop on it: the runtime, HotLoop and the
+  provisioner kept their containers (attempt 0) and kept serving through the cut, and pods without the
+  tolerations were evicted. A release that sets `tolerations` itself keeps its own list.
+
+---
+
 ## [2.3.0] (2026-11-04), chart `codesys-control-for-linux-sl`
 
 ### Added

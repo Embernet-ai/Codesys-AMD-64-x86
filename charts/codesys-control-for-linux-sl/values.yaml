@@ -112,7 +112,14 @@ service:
 nodeSelector: {}
 
 # ==================== Tolerations ====================
-tolerations: []
+# A node that loses its link to the control plane is marked unreachable, and the cluster evicts every pod
+# that does not tolerate that taint (300 s by default, 30 s on some clusters). A PLC runtime has to keep
+# running through a lost link, so these two carry no tolerationSeconds: the pod stays until the link is
+# back. Proven by cutting the link of a node (a v1.35.7 k3s agent) with the runtime and HotLoop on it:
+# both kept running while pods without them were evicted. Set your own list to replace these.
+tolerations:
+  - {key: node.kubernetes.io/unreachable, operator: Exists, effect: NoExecute}
+  - {key: node.kubernetes.io/not-ready, operator: Exists, effect: NoExecute}
 
 # ==================== Affinity ====================
 affinity: {}
