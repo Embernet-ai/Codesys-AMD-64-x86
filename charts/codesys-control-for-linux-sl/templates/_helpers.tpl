@@ -58,10 +58,13 @@ These labels enable Industrial Dashboard discovery for pod and service resources
 embernet.ai/store-app: "true"
 embernet.ai/gui-type: {{ .Values.gui.type | default "web" | quote }}
 embernet.ai/app-name: {{ include "codesys-control-for-linux-sl.name" . | quote }}
+{{- /* gui-port only for a web GUI: with the default shell type there is no page to point the store at. */}}
+{{- if eq (.Values.gui.type | default "web") "web" }}
 {{- if and .Values.sidecarProxy .Values.sidecarProxy.enabled }}
 embernet.ai/gui-port: {{ .Values.sidecarProxy.listenPort | quote }}
 {{- else }}
 embernet.ai/gui-port: {{ .Values.gui.port | default .Values.service.port | quote }}
+{{- end }}
 {{- end }}
 {{- end }}
 

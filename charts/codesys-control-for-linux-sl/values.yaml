@@ -125,10 +125,14 @@ tolerations:
 affinity: {}
 
 # ==================== GUI (Industrial Dashboard Discovery) ====================
+# The runtime serves no HTTP until a PLC project with a WebVisu is downloaded, so the
+# default is no web GUI, the same as the Virtual Control and Raspberry Pi charts: the Store
+# shows no Launch button that opens a 502. A site that runs a WebVisu project sets
+# gui.enabled=true and gui.type=web.
 gui:
-  enabled: true
+  enabled: false
   port: 8080
-  type: "web"
+  type: "shell"
   displayName: "CODESYS Control SL (AMD64)"
 
 # ==================== Persistence ====================
