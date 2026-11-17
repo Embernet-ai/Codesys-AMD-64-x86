@@ -4,6 +4,14 @@ All notable changes to the CODESYS Control SL (AMD64/x86) Helm chart.
 
 ---
 
+## [2.10.0] (2026-11-16), chart `codesys-control-for-linux-sl`
+
+### Changed
+
+- **`gui.enabled` now defaults to false and `gui.type` to `shell`.** The runtime serves no HTTP until a PLC project with a WebVisu is downloaded (measured on `codesys-control-sl:4.22.0.0`, 2026-09-27), so the Store showed a Launch button that opened a 502 on every fresh install. The Virtual Control and Raspberry Pi charts already default to no web GUI; this is the same. With the default, `embernet.ai/gui-port` is not rendered and the Service no longer carries the Flux `expose` annotations. A site that runs a WebVisu project sets `gui.enabled=true` and `gui.type=web` and gets exactly the 2.9.0 render. The Service ports (11740, 4840, 8080) are unchanged. `appVersion` and the image are unchanged.
+
+---
+
 ## [2.8.0] (2026-11-13), chart `codesys-control-for-linux-sl`
 
 ### Added

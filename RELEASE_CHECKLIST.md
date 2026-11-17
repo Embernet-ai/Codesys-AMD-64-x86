@@ -70,14 +70,16 @@ All four labels MUST appear on the **pod template** AND the **Service**, from th
 | Label | Expected Value | Verified? |
 |-------|---------------|-----------|
 | `embernet.ai/store-app` | `"true"` | ☐ |
-| `embernet.ai/gui-type` | `"web"` | ☐ |
+| `embernet.ai/gui-type` | `"shell"` by default, `"web"` with `gui.enabled=true gui.type=web` | ☐ |
 | `embernet.ai/app-name` | `"codesys-control-for-linux-sl"` (or the `nameOverride`) | ☐ |
-| `embernet.ai/gui-port` | `"8080"`, or `"8081"` with the sidecar | ☐ |
+| `embernet.ai/gui-port` | absent with the default shell type; `"8080"`, or `"8081"` with the sidecar, when `gui.type=web` | ☐ |
 
 ```bash
 helm template test-release $C | grep -cE 'embernet.ai/(store-app|gui-type|app-name|gui-port):'
-# Expected: 8 (4 labels on the Service, 4 on the pod template)
-helm template test-release $C --set sidecarProxy.enabled=true | grep 'gui-port'
+# Expected: 6 (3 labels on the Service, 3 on the pod template; gui-port only for a web GUI)
+helm template test-release $C --set gui.enabled=true --set gui.type=web | grep -c 'gui-port'
+# Expected: 2 (8080 on the Service and the pod template)
+helm template test-release $C --set gui.enabled=true --set gui.type=web --set sidecarProxy.enabled=true | grep 'gui-port'
 # Expected: "8081" twice
 helm template test-release $C --set-string 'tenantLabels.embernet\.ai/tenant=acme' | grep -c 'embernet.ai/tenant: acme'
 # Expected: 2 (Service and pod template)
@@ -121,7 +123,7 @@ WebVisu is server rendered, so the sidecar is **off by default**. Turn it on onl
 - [ ] Both `map $http_x_embernet_proxy_prefix` blocks are in `http {}` and every `sub_filter` replacement uses `$embernet_root`
 - [ ] `sub_filter_once off;`, `proxy_set_header Accept-Encoding "";`, and the WebSocket `Upgrade`/`Connection` headers with the `$connection_upgrade` map are present
 - [ ] The sidecar is the **last** container and its probes hit `/sidecar-health`
-- [ ] `gui.type` is still `"web"`
+- [ ] `gui.type` is `"web"` whenever the sidecar is used (`--set gui.enabled=true --set gui.type=web`)
 
 ```bash
 helm template test-release $C --set sidecarProxy.enabled=true \

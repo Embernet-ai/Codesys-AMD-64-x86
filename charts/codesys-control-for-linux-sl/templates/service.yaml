@@ -19,11 +19,15 @@ metadata:
     {{- toYaml . | nindent 4 }}
     {{- end }}
   annotations:
-    # Flux/Ziti mesh exposure (WebVisu) so the dashboard can dial it.
+    # Flux/Ziti mesh exposure (WebVisu) so the dashboard can dial it, only when this
+    # release serves a web GUI. With the default (no WebVisu project) there is no page
+    # to advertise and claiming one would put a dead terminator on the mesh.
+    {{- if .Values.gui.enabled }}
     flux.embernet.ai/expose: "true"
     flux.embernet.ai/service-name: {{ .Release.Name | quote }}
     flux.embernet.ai/port: {{ .Values.service.ports.webvisu | quote }}
     flux.embernet.ai/role-attributes: "gui-services"
+    {{- end }}
     {{- with .Values.embernet }}{{- if .displayName }}
     embernet.ai/display-name: {{ .displayName | quote }}
     {{- end }}{{- end }}
