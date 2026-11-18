@@ -93,7 +93,8 @@ spec:
           {{- $serial := or .Values.runtimeConfig.serialPortsStandard .Values.runtimeConfig.serialPorts }}
           {{- $ethf := .Values.runtimeConfig.ethernetInterfaceFilter }}
           {{- $logDir := .Values.runtimeConfig.logDir }}
-          {{- if or .Values.runtimeConfig.registerBootApplication .Values.runtimeConfig.disableUserMgmtEnforce $hp $serial $ethf $logDir }}
+          {{- $cmWait := .Values.runtimeConfig.cmRuntimeWaitSeconds }}
+          {{- if or .Values.runtimeConfig.registerBootApplication .Values.runtimeConfig.disableUserMgmtEnforce $hp $serial $ethf $logDir $cmWait }}
           # Runtime config bootstrap.
           #
           # /etc/codesyscontrol/ lives in the IMAGE, not on the PVC, and an
@@ -227,6 +228,17 @@ spec:
               {{- with $hp.udpPortIndex }}
               setkey "$CFG" CmpBlkDrvUdp DefaultPortIndex {{ . }}
               {{- end }}
+              {{- end }}
+              {{- if $cmWait }}
+              # runtimeConfig.cmRuntimeWaitSeconds: at start the runtime's CmpCodeMeter waits for a local
+              # CodeMeter runtime ("CmRuntime: Waiting local CmRuntime...") for 60 s by default, and
+              # CmpBlkDrvTcp does not open 11740 until that wait ends ("CmRuntime could not be connected
+              # within 60[s]", then "Local network address", then "CODESYS Control ready"). This image has no
+              # CodeMeter daemon (codemeter-lite is an empty shim), so the wait can only time out. The key is
+              # [CmpCodeMeter] TimeoutWaitForCmRuntime, seconds, read from the runtime binary's settings strings
+              # and proved on codesys-control-sl:4.22.0.0.
+              {{- include "codesys.setkey" . | nindent 14 }}
+              setkey "$CFG" CmpCodeMeter TimeoutWaitForCmRuntime {{ $cmWait | int }}
               {{- end }}
               exec /usr/local/bin/entrypoint.sh
           {{- else }}
