@@ -305,6 +305,10 @@ sidecarProxy:
 #                            exists as a real IP uplink:
 #                              ethernetInterfaceFilter: [enp3s0]   # only on the box whose enp3s0 is the coupler NIC
 runtimeConfig:
+  # cmRuntimeWaitSeconds: seconds the runtime waits for a local CodeMeter runtime at start, written as
+  # [CmpCodeMeter] TimeoutWaitForCmRuntime. The vendor default is 60 and this image has no CodeMeter daemon,
+  # so with 60 the runtime listens on 11740 a full minute after the pod is Ready. 0 leaves the vendor default.
+  cmRuntimeWaitSeconds: 1
   registerBootApplication: false
   disableUserMgmtEnforce: false
   serialPortsStandard: false

@@ -4,6 +4,14 @@ All notable changes to the CODESYS Control SL (AMD64/x86) Helm chart.
 
 ---
 
+## [2.11.0] (2026-11-18), chart `codesys-control-for-linux-sl`
+
+### Changed
+
+- **`runtimeConfig.cmRuntimeWaitSeconds` (default 1) writes `[CmpCodeMeter] TimeoutWaitForCmRuntime`.** At start the runtime's CmpCodeMeter waits for a local CodeMeter runtime for 60 s ("CmRuntime: Waiting local CmRuntime..."), and CmpBlkDrvTcp does not open TCP 11740 until that wait ends. This image has no CodeMeter daemon (codemeter-lite is an empty shim), so the wait could only time out: the pod was Ready and the IDE and any client got a refused connection on 11740 for a full minute, and "CODESYS Control ready" logged 60 s after start. Measured on the house on `codesys-control-sl:4.22.0.0` (the Store audit, 2026-11-18): before, "Waiting local CmRuntime" 18:42:58.147 then "CODESYS Control ready" 18:43:58.283 and 11740 closed in between; with the key at 1, "Local network address" and "CODESYS Control ready" within 0.05 s of the wait line and 11740 listening on 0.0.0.0. The demo license behavior is unchanged ("no runtime license - running in demo mode"). 0 leaves the vendor default. `appVersion` and the image are unchanged.
+
+---
+
 ## [2.10.0] (2026-11-16), chart `codesys-control-for-linux-sl`
 
 ### Changed

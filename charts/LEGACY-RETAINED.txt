@@ -72,3 +72,6 @@ codesys-control-for-linux-sl-2.8.0.tgz
 
 # Retained 2026-11-16: the version 2.10.0 replaces. 2.10.0 defaults to no web GUI (no Launch until a WebVisu project is loaded); 2.9.0 is the version with the web GUI on by default.
 codesys-control-for-linux-sl-2.9.0.tgz
+
+# Retained 2026-11-18: the version 2.11.0 replaces. 2.11.0 shortens the runtime's wait for a local CodeMeter runtime from 60 s to 1 s; 2.10.0 is the version with the vendor default wait.
+codesys-control-for-linux-sl-2.10.0.tgz
