@@ -2,6 +2,8 @@
 
 Run the CODESYS Control SL Runtime on Kubernetes (K3s, Rancher) using the **Installer Download Pattern**.
 
+Part of [EmberNet](https://embernet.ai), the complete industrial edge platform.
+
 ## Overview
 
 This chart deploys a standard Debian container that:
